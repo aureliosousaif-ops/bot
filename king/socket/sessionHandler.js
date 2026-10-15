@@ -6,9 +6,10 @@ const { setupGroupCacheListeners } = require("./groupStore");
 const qrcode = require("qrcode-terminal");
 
 const RECONNECT_DELAY = 5000;
-const MAX_RECONNECT_ATTEMPTS = 50;
+const MAX_RECONNECT_ATTEMPTS = 8;
 
 let reconnectAttempts = 0;
+let reconnectTimer = null;
 
 const safeNewsletterFollow = async (Malvin, newsletterJid) => {
     if (!newsletterJid) return false;
@@ -71,12 +72,15 @@ const setupConnectionHandler = (
 
         if (connection === "connecting") {
             console.log("🕗 Connecting Bot...");
-            reconnectAttempts = 0;
         }
 
         if (connection === "open") {
             console.log("✅ Connection Instance is Online");
             reconnectAttempts = 0;
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
 
             if (callbacks.onOpen) {
                 await callbacks.onOpen(Malvin);
@@ -102,7 +106,11 @@ const setupConnectionHandler = (
                 console.log(
                     `🕗 Reconnection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms...`,
                 );
-                setTimeout(() => startMalvin(), delay);
+                if (reconnectTimer) return;
+                reconnectTimer = setTimeout(() => {
+                    reconnectTimer = null;
+                    startMalvin().catch((error) => console.error("❌ Falha ao reiniciar o socket:", error));
+                }, delay);
             };
 
             switch (reason) {
@@ -146,7 +154,7 @@ const setupConnectionHandler = (
 
                 case DisconnectReason.timedOut:
                     console.log("Connection timed out, reconnecting...");
-                    setTimeout(() => handleReconnect(), RECONNECT_DELAY * 2);
+                    handleReconnect();
                     break;
 
                 default:

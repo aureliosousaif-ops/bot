@@ -17,7 +17,6 @@ const createSocketConfig = (version, state, logger) => {
         },
         cachedGroupMetadata,
         userDevicesCache: _userDevicesCache,
-        printQRInTerminal: true,
         connectTimeoutMs: 15000,
         defaultQueryTimeoutMs: 20000,
         keepAliveIntervalMs: 20000,

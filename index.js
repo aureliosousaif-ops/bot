@@ -151,7 +151,7 @@ const PORT = process.env.PORT || 5000;
 const app = express();
 let Malvin;
 let store;
-let pairingCodeState = { code: null, expiresAt: 0, used: false };
+let pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null };
 logger.level = "silent";
 app.use(express.static("king"));
 app.use(express.urlencoded({ extended: false }));
@@ -175,9 +175,13 @@ app.post("/pairing", (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!pairingTokenIsValid(req.body?.token)) return res.status(401).type("html").send("Token inválido.");
   const available = pairingCodeState.code && Date.now() < pairingCodeState.expiresAt && !pairingCodeState.used;
-  if (!available) return res.status(410).type("html").send("Código indisponível, expirado ou já utilizado. Reinicie o serviço para gerar outro.");
+  if (!available) {
+    const detail = pairingCodeState.error || (pairingCodeState.status === "aguardando" ? "O WhatsApp ainda não liberou o código." : "Código indisponível, expirado ou já utilizado.");
+    return res.status(pairingCodeState.status === "erro" ? 503 : 410).type("html").send(detail + " Aguarde a próxima tentativa do serviço.");
+  }
   const code = pairingCodeState.code;
   pairingCodeState.used = true;
+  pairingCodeState.status = "usado";
   res.type("html").send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Código de pareamento</title><style>body{font-family:system-ui;text-align:center;margin:48px auto;padding:20px;background:#111;color:#eee}.code{font-size:2.2rem;letter-spacing:.25rem;font-weight:800;background:#222;padding:20px;border-radius:12px}</style><h1>Sousinha Bot</h1><p>Digite este código no WhatsApp em Aparelhos conectados:</p><div class="code">${code}</div><p>Este código foi exibido uma única vez.</p>`);
 });
 app.listen(PORT, () => console.log("✅ Server Running on Port: " + PORT));
@@ -266,28 +270,40 @@ async function startMalvin() {
     const requestPairingCode = async () => {
       if (pairingRequested) return;
       pairingRequested = true;
+      pairingCodeState = { code: null, expiresAt: 0, used: false, status: "solicitando", error: null };
       console.log("🔐 Iniciando pareamento: número configurado=" + (pairingNumber ? "sim" : "não") + ", método disponível=" + (typeof Malvin.requestPairingCode === "function" ? "sim" : "não"));
       if (!shouldRequestPairingCode || typeof Malvin.requestPairingCode !== "function") {
+        pairingCodeState.status = "erro";
+        pairingCodeState.error = "O método de pareamento não está disponível nesta versão do adaptador.";
         console.error("❌ Pareamento não iniciado. Verifique USE_PAIRING_CODE, FORCE_PAIRING_CODE, PAIRING_NUMBER e a versão do Baileys.");
         return;
       }
       try {
-        const pairingCode = await Malvin.requestPairingCode(pairingNumber);
-        pairingCodeState = { code: String(pairingCode), expiresAt: Date.now() + 10 * 60 * 1000, used: false };
+        const pairingCode = await Promise.race([
+          Malvin.requestPairingCode(pairingNumber),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("tempo limite de 15 segundos aguardando resposta do WhatsApp")), 15000))
+        ]);
+        pairingCodeState = { code: String(pairingCode), expiresAt: Date.now() + 10 * 60 * 1000, used: false, status: "pronto", error: null };
         console.log("\n🔐 CÓDIGO DE PAREAMENTO DO SOUSINHA BOT: " + pairingCode);
         console.log("No WhatsApp: Configurações > Aparelhos conectados > Conectar aparelho > Conectar com número de telefone.\n");
       } catch (pairingError) {
+        pairingCodeState.status = "erro";
+        pairingCodeState.error = pairingError.message || "Falha desconhecida ao solicitar o código.";
         console.error("❌ Não foi possível gerar o código de pareamento:", pairingError.stack || pairingError.message);
       }
     };
     Malvin.ev.on("connection.update", update => {
       if (update?.connection === "connecting" && shouldRequestPairingCode) {
-        setTimeout(requestPairingCode, 3000);
+        console.log("🔗 WebSocket pronto para solicitar pareamento; aguardando 500ms...");
+        setTimeout(requestPairingCode, 500);
+      }
+      if (update?.connection === "close" && update.lastDisconnect?.error) {
+        const closeError = update.lastDisconnect.error;
+        console.error("❌ Conexão WhatsApp encerrada durante o pareamento:", closeError.stack || closeError.message || String(closeError));
       }
     });
     if (shouldRequestPairingCode || config.USE_PAIRING_CODE) {
       console.log("🔧 Pareamento configurado: ativado=" + (config.USE_PAIRING_CODE ? "sim" : "não") + ", forçado=" + (config.FORCE_PAIRING_CODE ? "sim" : "não") + ", número=" + (pairingNumber ? "válido" : "ausente"));
-      void requestPairingCode();
     }
     store.bind(Malvin.ev);
     Malvin.ev.process(async cleanVar0190 => {
