@@ -313,6 +313,7 @@ async function startMalvin() {
           connection: update?.connection || null,
           hasQr: Boolean(update?.qr),
           isNewLogin: Boolean(update?.isNewLogin),
+          registered: cleanVar0042.creds?.registered === true,
           receivedPendingNotifications: Boolean(update?.receivedPendingNotifications),
           hasDisconnectError: Boolean(update?.lastDisconnect?.error)
         };
@@ -364,7 +365,7 @@ async function startMalvin() {
           new Promise((_, reject) => setTimeout(() => reject(new Error("tempo limite de 15 segundos aguardando resposta do WhatsApp")), 15000))
         ]);
         pairingCodeState = { code: String(pairingCode), expiresAt: Date.now() + 10 * 60 * 1000, used: false, status: "pronto", error: null };
-        console.log("\n🔐 CÓDIGO DE PAREAMENTO DO SOUSINHA BOT: " + pairingCode);
+        console.log("\n🔐 Código de pareamento gerado e protegido no endpoint /pairing (não será impresso integralmente nos logs). Código mascarado: " + String(pairingCode).slice(0, 2) + "••••");
         console.log("No WhatsApp: Configurações > Aparelhos conectados > Conectar aparelho > Conectar com número de telefone.\n");
       } catch (pairingError) {
         pairingCodeState.status = "erro";

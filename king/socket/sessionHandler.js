@@ -62,12 +62,16 @@ const setupConnectionHandler = (
     setupGroupCacheListeners(Malvin);
 
     Malvin.ev.on("connection.update", async (update) => {
-        const { connection, lastDisconnect, qr } = update;
+        const { connection, lastDisconnect, qr, isNewLogin } = update;
 
-        if (qr && process.env.USE_PAIRING_CODE !== "true") {
+        if (qr) {
             console.log("\n📱 Escaneie este QR Code no WhatsApp > Aparelhos conectados:\n");
             qrcode.generate(qr, { small: true });
             console.log("\nO QR Code expira rapidamente; se necessário, aguarde o próximo.\n");
+        }
+
+        if (isNewLogin) {
+            console.log("✅ [PAIRING] WhatsApp aceitou o vínculo; aguardando reinicialização controlada.");
         }
 
         if (connection === "connecting") {
@@ -96,10 +100,16 @@ const setupConnectionHandler = (
 
             const handleReconnect = () => {
                 if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-                    console.error(
-                        "Max reconnection attempts reached. Exiting...",
-                    );
-                    process.exit(1);
+                    const cooldown = 600000;
+                    console.error(`Limite de reconexões atingido; o servidor continuará vivo e tentará novamente em ${cooldown}ms.`);
+                    if (!reconnectTimer) {
+                        reconnectTimer = setTimeout(() => {
+                            reconnectAttempts = 0;
+                            reconnectTimer = null;
+                            startMalvin().catch((error) => console.error("❌ Falha ao reiniciar o socket após cooldown:", error.message));
+                        }, cooldown);
+                    }
+                    return;
                 }
                 reconnectAttempts++;
                 const delay = Math.min(
@@ -122,11 +132,8 @@ const setupConnectionHandler = (
                     break;
 
                 case DisconnectReason.connectionReplaced:
-                    console.log(
-                        "Connection replaced, another new session opened",
-                    );
-                    process.exit(1);
-                    break;
+                    console.log("Outra sessão assumiu o WhatsApp; o servidor HTTP continuará vivo sem abrir sockets concorrentes.");
+                    return;
 
                 case DisconnectReason.loggedOut:
                     console.error("Dispositivo desconectado pelo WhatsApp; sessão preservada e reconexão automática interrompida.");
