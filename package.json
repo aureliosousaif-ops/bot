@@ -6,6 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "node index.js",
+    "postinstall": "node scripts/patch-mrxd-pairing.js",
     "start": "pm2 start index.js --deep-monitoring --attach --name sousinha-bot",
     "stop": "pm2 stop sousinha-bot",
     "restart": "pm2 restart sousinha-bot && pm2 logs sousinha-bot",
