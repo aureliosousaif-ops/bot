@@ -263,7 +263,7 @@ async function startMalvin() {
     });
     if (shouldRequestPairingCode || config.USE_PAIRING_CODE) {
       console.log("🔧 Pareamento configurado: ativado=" + (config.USE_PAIRING_CODE ? "sim" : "não") + ", forçado=" + (config.FORCE_PAIRING_CODE ? "sim" : "não") + ", número=" + (pairingNumber ? "válido" : "ausente"));
-      setTimeout(requestPairingCode, 8000);
+      void requestPairingCode();
     }
     store.bind(Malvin.ev);
     Malvin.ev.process(async cleanVar0190 => {
