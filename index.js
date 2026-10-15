@@ -116,6 +116,12 @@ const https = require("https");
 
 const DEBUG_WHATSAPP = process.env.DEBUG_WHATSAPP === "true";
 const safeErrorText = (error) => String(error?.message || error || "erro desconhecido").replace(/(token|session|authorization|cookie|password|secret)\s*[:=]\s*[^\s,;]+/gi, "$1=[oculto]");
+const safeDisconnectDetails = (error) => JSON.stringify({
+  message: safeErrorText(error),
+  statusCode: error?.output?.statusCode ?? error?.statusCode ?? null,
+  reason: error?.data?.reason ?? error?.data?.status ?? null,
+  dataKeys: error?.data && typeof error.data === "object" ? Object.keys(error.data) : []
+});
 async function diagnoseWhatsAppNetwork() {
   if (!DEBUG_WHATSAPP) return;
   const host = "web.whatsapp.com";
@@ -278,6 +284,13 @@ async function startMalvin() {
       saveCreds: cleanVar0053
     } = await useSQLiteAuthState(cleanVar0082);
     console.log("✅ Autenticação local aberta.");
+    const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || cleanVar0042.creds?.me?.name === "~" || cleanVar0042.creds?.registered === false;
+    if (config.USE_PAIRING_CODE && cleanVar0042.creds?.me?.name === "~") {
+      console.warn("[PAIRING] Marcador de pareamento incompleto encontrado; limpando apenas creds.me/pairingCode para iniciar registro, sem apagar a sessão.");
+      delete cleanVar0042.creds.me;
+      delete cleanVar0042.creds.pairingCode;
+      await cleanVar0053();
+    }
     if (store) {
       store.destroy();
     }
@@ -312,7 +325,7 @@ async function startMalvin() {
           hasDisconnectError: Boolean(update?.lastDisconnect?.error)
         };
         console.log("[WA-DIAG] connection.update=" + JSON.stringify(details));
-        if (update?.lastDisconnect?.error) console.error("[WA-DIAG] desconexão=" + safeErrorText(update.lastDisconnect.error));
+        if (update?.lastDisconnect?.error) console.error("[WA-DIAG] desconexão=" + safeDisconnectDetails(update.lastDisconnect.error));
       }
       if (update?.connection === "open") clearTimeout(socketWatchdog);
       if (update?.qr) {
@@ -322,9 +335,8 @@ async function startMalvin() {
       }
     });
     Malvin.ev.on("creds.update", update => {
-      if (DEBUG_WHATSAPP) console.log("[WA-DIAG] creds.update recebido: campos=" + Object.keys(update || {}).join(","));
+      if (DEBUG_WHATSAPP) console.log("[WA-DIAG] creds.update recebido: campos=" + Object.keys(update || {}).join(",") + ", registered=" + String(update?.registered ?? cleanVar0042.creds?.registered ?? "desconhecido") + ", hasMe=" + String(Boolean(update?.me || cleanVar0042.creds?.me)));
     });
-    const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || cleanVar0042.creds?.me?.name === "~";
     const pairingNumber = String(config.PAIRING_NUMBER || "").replace(/\D/g, "");
     const shouldRequestPairingCode = config.USE_PAIRING_CODE && pairingNumber && (pairingSessionIncomplete || config.FORCE_PAIRING_CODE);
     let pairingRequested = false;
@@ -360,7 +372,7 @@ async function startMalvin() {
       }
       if (update?.connection === "close" && update.lastDisconnect?.error) {
         const closeError = update.lastDisconnect.error;
-        console.error("❌ Conexão WhatsApp encerrada durante o pareamento:", closeError.stack || closeError.message || String(closeError));
+        console.error("❌ Conexão WhatsApp encerrada durante o pareamento: " + safeDisconnectDetails(closeError));
       }
     });
     if (shouldRequestPairingCode || config.USE_PAIRING_CODE) {
