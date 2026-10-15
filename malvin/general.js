@@ -641,12 +641,8 @@ mxd(
         channelUrl = `https://whatsapp.com/channel/${channelId}`;
       }
 
-      const fallbackImage = "https://files.catbox.moe/hffiqp.jpg";
-      const validBotPic = botPic && botPic !== '' ? botPic : fallbackImage;
-
       await Malvin.sendMessage(from, {
-        image: { url: validBotPic },
-        caption: `${menu.trim()}\n\n${botFooter}`,
+        text: `${menu.trim()}\n\n${botFooter}`,
       }, { quoted: mrxd });
 
       await react("✅");

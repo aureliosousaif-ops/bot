@@ -4,7 +4,7 @@ async function connectRPG() {
   if (_connected) {
     return;
   }
-  const _0xd725c7 = "mongodb+srv://malvintech11_db_user:0SBgxRy7WsQZ1KTq@cluster0.xqgaovj.mongodb.net/malvin_rpg?appName=Cluster0";
+  const _0xd725c7 = process.env.MONGO_URI || process.env.MONGODB_URI || "";
   if (!_0xd725c7) {
     console.warn("[RPG] ⚠️  MONGO_URI not set — RPG system disabled.");
     return;

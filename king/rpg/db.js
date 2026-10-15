@@ -5,6 +5,7 @@
  * Uses $inc / $set atomically — safe across multiple bot deployments.
  */
 
+const mongoose = require('mongoose');
 const { GlobalPlayer, Guild, WorldEvent } = require('./model');
 const { canLevelUp, calcMessageExp, xpRange } = require('./leveling');
 const { getRank } = require('./ranks');
@@ -29,6 +30,7 @@ async function getPlayer(jid, botId = '') {
  * Get full player doc. Returns null if not found.
  */
 async function fetchPlayer(jid) {
+    if (mongoose.connection.readyState !== 1) return null;
     return GlobalPlayer.findOne({ jid }).lean();
 }
 

@@ -267,7 +267,7 @@ setInterval(async () => {
     await runNotifications(global.MalvinBot, global.botId).catch(cleanVar0018 => console.error("[Notifications]", cleanVar0018.message));
   }
 }, 1800000);
-const sessionDir = path.join(__dirname, "king", "session");
+const sessionDir = process.env.SESSION_DIR || path.join(__dirname, "king", "session");
 const pluginsPath = path.join(__dirname, "malvin");
 let botSettings = {};
 async function loadBotSettings() {
@@ -299,6 +299,7 @@ async function startMalvin() {
     if (!Array.isArray(cleanVar0034)) throw new Error("Versão do WhatsApp Web indisponível");
     console.log("✅ Versão do WhatsApp obtida.");
     await diagnoseWhatsAppNetwork();
+    await fs.ensureDir(sessionDir);
     const cleanVar0082 = path.join(sessionDir, "session.db");
     console.log("🔄 Abrindo autenticação local...");
     const {
@@ -443,15 +444,23 @@ async function startMalvin() {
     setupConnectionHandler(Malvin, sessionDir, startMalvin, {
       onOpen: async cleanVar0160 => {
         const cleanVar0235 = await getAllSettings();
-        await safeNewsletterFollow(cleanVar0160, cleanVar0235.NEWSLETTER_JID);
-        await safeGroupAcceptInvite(cleanVar0160, cleanVar0235.GC_JID);
-        await initializeLidStore(cleanVar0160);
+        console.log("💙 Connected to Whatsapp, Active! Comandos liberados; sincronizações opcionais continuam em segundo plano.");
+        const backgroundSync = [
+          safeNewsletterFollow(cleanVar0160, cleanVar0235.NEWSLETTER_JID),
+          safeGroupAcceptInvite(cleanVar0160, cleanVar0235.GC_JID),
+          initializeLidStore(cleanVar0160)
+        ];
+        Promise.allSettled(backgroundSync).then(results => {
+          const failures = results.filter(result => result.status === "rejected");
+          if (failures.length && DEBUG_WHATSAPP) {
+            console.warn("[WA-DIAG] Sincronizações em segundo plano com falha: " + failures.length);
+          }
+        });
         const { startRentalExpiryMonitor } = require("./malvin/rental");
         startRentalExpiryMonitor(cleanVar0160);
         setTimeout(async () => {
           try {
             const cleanVar0120 = commands.filter(cleanVar0011 => cleanVar0011.pattern && !cleanVar0011.dontAddCommandList).length;
-            console.log("💙 Connected to Whatsapp, Active!");
             if (cleanVar0235.STARTING_MESSAGE === "true") {
               const cleanVar0009 = DEFAULT_SETTINGS;
               const cleanVar0234 = cleanVar0235.MODE === "public" ? "public" : "private";
