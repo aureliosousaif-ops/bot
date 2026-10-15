@@ -1,0 +1,29 @@
+# Credenciais e sessões: nunca versionar
+.env
+.env.*
+!.env.example
+auth_info/
+auth_state/
+session/
+sessions/
+creds.json
+
+# Dependências e logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+logs/
+*.log
+
+# Banco de dados e arquivos temporários locais
+*.db
+*.sqlite
+*.sqlite3
+king/temp/*
+!king/temp/.gitkeep
+
+# Sistema operacional e editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
