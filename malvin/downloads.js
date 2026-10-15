@@ -92,15 +92,6 @@ mxd(
                     document: { url: zipUrl },
                     fileName: filename,
                     mimetype: "application/zip",
-                    contextInfo: {
-                        forwardingScore: 1,
-                        isForwarded: true,
-                        forwardedNewsletterMessageInfo: {
-                            newsletterJid: newsletterJid,
-                            newsletterName: botName,
-                            serverMessageId: 143,
-                        },
-                    },
                 },
                 { quoted: mek },
             );

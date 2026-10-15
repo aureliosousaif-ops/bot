@@ -1,4 +1,4 @@
-# Catálogo de comandos — Sousinha Bot Premium
+# Catálogo de comandos — Bot WhatsApp
 
 Este catálogo é gerado a partir dos registros `pattern` encontrados nos módulos `malvin/*.js`. Os nomes originais e aliases originais são preservados. A confirmação estática não substitui o teste de cada comando conectado ao WhatsApp.
 

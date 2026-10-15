@@ -3,6 +3,7 @@ const { DisconnectReason } = require("mrxd-baileys");
 const fs = require("fs-extra");
 const path = require("path");
 const { setupGroupCacheListeners } = require("./groupStore");
+const qrcode = require("qrcode-terminal");
 
 const RECONNECT_DELAY = 5000;
 const MAX_RECONNECT_ATTEMPTS = 50;
@@ -60,7 +61,13 @@ const setupConnectionHandler = (
     setupGroupCacheListeners(Malvin);
 
     Malvin.ev.on("connection.update", async (update) => {
-        const { connection, lastDisconnect } = update;
+        const { connection, lastDisconnect, qr } = update;
+
+        if (qr) {
+            console.log("\n📱 Escaneie este QR Code no WhatsApp > Aparelhos conectados:\n");
+            qrcode.generate(qr, { small: true });
+            console.log("\nO QR Code expira rapidamente; se necessário, aguarde o próximo.\n");
+        }
 
         if (connection === "connecting") {
             console.log("🕗 Connecting Bot...");

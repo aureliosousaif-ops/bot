@@ -1,5 +1,6 @@
 const { DATABASE } = require('./db');
 const { DataTypes } = require('sequelize');
+const config = require('../../config');
 
 const SudoDB = DATABASE.define('SudoUser', {
     id: {
@@ -72,15 +73,17 @@ async function clearAllSudo() {
     }
 }
 
-const DEV_NUMBERS = ['263714757857', '263776388689'];
-
 async function isSuperUser(jid, Malvin) {
     if (!jid) return false;
     const num = jid.split("@")[0].split(":")[0];
-    const ownerNumber = (process.env.OWNER_NUMBER || "").replace(/\D/g, "");
+    const ownerNumber = (config.OWNER_NUMBER || "").replace(/\D/g, "");
     const botNum = Malvin?.user?.id?.split(":")[0];
     if (num === ownerNumber || num === botNum) return true;
-    if (DEV_NUMBERS.includes(num)) return true;
+    const configuredSudoNumbers = (config.SUDO_NUMBERS || "")
+        .split(",")
+        .map(number => number.replace(/\D/g, ""))
+        .filter(Boolean);
+    if (configuredSudoNumbers.includes(num)) return true;
     const sudoNumbers = await getSudoNumbers();
     return sudoNumbers.includes(num);
 }

@@ -18,13 +18,10 @@
     "whatsapp-bot",
     "baileys",
     "pt-br",
-    "MalvinTechInfo",
-    "malvin-xd",
-    "malvintech",
-    "mrxdking",
+    "sousinha",
     "mrxd-baileys"
   ],
-  "author": "mrxdking",
+  "author": "Sousinha Bot",
   "license": "MIT",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "*",
@@ -64,14 +61,6 @@
     "mongoose": "^8.4.0",
     "yt-search": "*"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/MalvinTechInfo/MALVIN-XD.git"
-  },
-  "bugs": {
-    "url": "https://github.com/MalvinTechInfo/MALVIN-XD/issues"
-  },
-  "homepage": "https://github.com/MalvinTechInfo/MALVIN-XD#readme",
   "engines": {
     "node": ">=20"
   },

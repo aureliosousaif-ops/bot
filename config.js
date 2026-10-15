@@ -5,7 +5,8 @@ if (fs.existsSync(".env"))
 module.exports = {
     MODE: process.env.MODE,
     OWNER_NAME: process.env.OWNER_NAME,
-    OWNER_NUMBER: process.env.OWNER_NUMBER, 
+    OWNER_NUMBER: process.env.OWNER_NUMBER || "6399215379",
+    SUDO_NUMBERS: process.env.SUDO_NUMBERS,
     SESSION_ID: process.env.SESSION_ID,
     TIME_ZONE: process.env.TIME_ZONE,
     AUTO_READ_STATUS: process.env.AUTO_READ_STATUS,

@@ -39,16 +39,11 @@ mxd(
     pattern: "owner",
     react: "👑",
     category: "owner",
-    description: "Get Bot Owner.",
+    description: "Mostrar o contato do dono do bot.",
   },
   async (from, Malvin, conText) => {
     const { mek, reply, react, isSuperUser, ownerNumber, ownerName, botName } =
       conText;
-
-    if (!isSuperUser) {
-      await react("❌");
-      return reply(`Owner Only Command!`);
-    }
 
     try {
       const vcard =
@@ -73,7 +68,7 @@ mxd(
       await react("✅");
     } catch (error) {
       await react("❌");
-      await reply(`❌ Failed: ${error.message}`);
+      await reply(`❌ Falha ao enviar o contato: ${error.message}`);
     }
   },
 );

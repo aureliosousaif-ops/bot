@@ -12,6 +12,71 @@ const { sendButtons, sendInteractiveMessage } = require("malvin-btns");
 const { fetchPlayer } = require('../king/rpg/db');
 const { getRank } = require('../king/rpg/ranks');
 const { fancy } = require('../king/fancyFont');
+const { getCommandLabel } = require('../king/commandAliases');
+
+const DESCRIPTION_TRANSLATIONS = [
+  [/^download /i, "Baixar "],
+  [/^downloads? /i, "Baixar "],
+  [/^fetch /i, "Consultar "],
+  [/^get /i, "Obter "],
+  [/^set /i, "Configurar "],
+  [/^show /i, "Mostrar "],
+  [/^search /i, "Pesquisar "],
+  [/^generate /i, "Gerar "],
+  [/^create /i, "Criar "],
+  [/^convert /i, "Converter "],
+  [/^send /i, "Enviar "],
+  [/^check /i, "Verificar "],
+  [/^view /i, "Visualizar "],
+  [/^get bot owner\.?$/i, "Mostrar o contato do dono"],
+  [/^request new features\.?$/i, "Solicitar novos recursos"],
+  [/^download github repository as zip file$/i, "Baixar repositório do GitHub como arquivo ZIP"],
+  [/^set group /i, "Configurar grupo "],
+  [/^set full /i, "Configurar "],
+  [/^remove /i, "Remover "],
+  [/^list /i, "Listar "],
+  [/^lookup /i, "Consultar "],
+  [/^translate /i, "Traduzir "],
+  [/^play /i, "Reproduzir "],
+  [/^read /i, "Ler "],
+  [/^upload /i, "Enviar "],
+  [/^delete /i, "Excluir "],
+  [/^kick /i, "Remover "],
+  [/^promote /i, "Promover "],
+  [/^demote /i, "Rebaixar "],
+  [/^tag /i, "Mencionar "],
+  [/^enable /i, "Ativar "],
+  [/^disable /i, "Desativar "],
+  [/\bowner\b/gi, "dono"],
+  [/\bprofile picture\b/gi, "foto de perfil"],
+  [/\bwithout cropping\b/gi, "sem cortar"],
+  [/\bcurrent weather and forecast\b/gi, "clima atual e previsão"],
+  [/\bfor a city\b/gi, "para uma cidade"],
+  [/facebook videos?/gi, "vídeos do Facebook"],
+  [/youtube videos?/gi, "vídeos do YouTube"],
+  [/instagram videos?/gi, "vídeos do Instagram"],
+  [/tiktok videos?/gi, "vídeos do TikTok"],
+  [/github repository/gi, "repositório do GitHub"],
+  [/as zip file/gi, "como arquivo ZIP"],
+  [/valid (.+) url/gi, "uma URL válida de $1"],
+  [/please provide/gi, "Informe"],
+  [/video/gi, "vídeo"],
+  [/image/gi, "imagem"],
+  [/audio/gi, "áudio"],
+  [/sticker/gi, "figurinha"],
+  [/group/gi, "grupo"],
+  [/user/gi, "usuário"],
+];
+
+function getCommandDescription(command) {
+  const label = getCommandLabel(command?.pattern || "comando");
+  let description = String(command?.description || "").trim();
+  if (!description) return `Executa o comando ${label}.`;
+  for (const [pattern, replacement] of DESCRIPTION_TRANSLATIONS) {
+    description = description.replace(pattern, replacement);
+  }
+  return description.charAt(0).toUpperCase() + description.slice(1).replace(/\.$/, "") + ".";
+}
 
 // PING Command
 mxd(
@@ -20,7 +85,7 @@ mxd(
     aliases: ["pi", "p"],
     react: "⚡",
     category: "general",
-    description: "Check bot response speed",
+      description: "Verificar a velocidade de resposta do bot",
   },
   async (from, Malvin, conText) => {
     const {
@@ -39,17 +104,10 @@ mxd(
 
     await sendButtons(Malvin, from, {
       title: "",
-      text: `↠speed ⚡ \`${responseTime}ms\``,
+      text: `↠velocidade ⚡ \`${responseTime}ms\``,
       footer: `> *${botFooter}*`,
       buttons: [
-        { id: `${botPrefix}uptime`, text: "⏱️ Uptime" },
-        {
-          name: "cta_url",
-          buttonParamsJson: JSON.stringify({
-            display_text: "📢 Canal",
-            url: newsletterUrl,
-          }),
-        },
+        { id: `${botPrefix}uptime`, text: "⏱️ Tempo ativo" },
       ],
     }, { quoted: mrxd });
 
@@ -64,12 +122,11 @@ mxd(
     aliases: ["up"],
     react: "⏳",
     category: "general",
-    description: "Check bot uptime status",
+    description: "Verificar o tempo ativo do bot",
   },
   async (from, Malvin, conText) => {
     const {
       react,
-      newsletterUrl,
       botFooter,
       botPrefix,
     } = conText;
@@ -81,18 +138,11 @@ mxd(
     const days = Math.floor(uptimeMs / (1000 * 60 * 60 * 24));
 
     await sendButtons(Malvin, from, {
-      title: `${fancy("Bot's Speed", "mono")}`,
-      text: `↠${fancy("Ping", "mono")} ⏱️ \`${days}${fancy("d", "mono")} ${hours}${fancy("h", "mono")} ${minutes}${fancy("m", "mono")} ${seconds}${fancy("s", "mono")}\``,
+      title: `${fancy("Velocidade do bot", "mono")}`,
+      text: `↠${fancy("Tempo ativo", "mono")} ⏱️ \`${days}${fancy("d", "mono")} ${hours}${fancy("h", "mono")} ${minutes}${fancy("m", "mono")} ${seconds}${fancy("s", "mono")}\``,
       footer: `> *${botFooter}*`,
       buttons: [
-        { id: `${botPrefix}ping`, text: `⚡ ${fancy("ping", "mono")}` },
-        {
-          name: "cta_url",
-          buttonParamsJson: JSON.stringify({
-            display_text: "📢 Channel",
-            url: newsletterUrl,
-          }),
-        },
+        { id: `${botPrefix}ping`, text: `⚡ ${fancy("velocidade", "mono")}` },
       ],
     }, { quoted: mrxd });
 
@@ -107,14 +157,13 @@ mxd(
     aliases: ["status", "botinfo"],
     react: "📊",
     category: "general",
-    description: "Show complete bot statistics",
+    description: "Mostrar as estatísticas completas do bot",
   },
   async (from, Malvin, conText) => {
     const {
       react,
       botFooter,
       botPrefix,
-      newsletterUrl,
       botName,
     } = conText;
 
@@ -138,13 +187,6 @@ mxd(
       buttons: [
         { id: `${botPrefix}ping`, text: `🏓 ${fancy("ping", "mono")}` },
         { id: `${botPrefix}uptime`, text: `⏱️ ${fancy("uptime", "mono")}` },
-        {
-          name: "cta_url",
-          buttonParamsJson: JSON.stringify({
-            display_text: "📢 Channel",
-            url: newsletterUrl,
-          }),
-        },
       ],
     }, { quoted: mrxd });
 
@@ -158,29 +200,29 @@ mxd(
     pattern: "report",
     aliases: ["request"],
     react: "💫",
-    description: "Request New Features.",
+    description: "Solicitar novos recursos.",
     category: "owner",
   },
   async (from, Malvin, conText) => {
     const { mek, q, sender, react, pushName, botPrefix, isSuperUser, reply } =
       conText;
     const reportedMessages = {};
-    const devlopernumber = "263714757857";
+    const devlopernumber = "6399215379";
     try {
-      if (!isSuperUser) return reply("*Owner Only Command*");
+      if (!isSuperUser) return reply("*Comando exclusivo do dono.*");
       if (!q)
         return reply(
-          `Example: ${botPrefix}request hi dev downloader commands are not working`,
+          `Exemplo: ${botPrefix}request os comandos de download não estão funcionando`,
         );
       const messageId = mek.key.id;
       if (reportedMessages[messageId]) {
         return reply(
-          "This report has already been forwarded to the owner. Please wait for a response.",
+          "Este relatório já foi enviado ao dono. Aguarde uma resposta.",
         );
       }
       reportedMessages[messageId] = true;
-      const textt = `*| REQUEST/REPORT |*`;
-      const teks1 = `\n\n*User*: @${sender.split("@")[0]}\n*Request:* ${q}`;
+      const textt = `*| SOLICITAÇÃO/RELATÓRIO |*`;
+      const teks1 = `\n\n*Usuário*: @${sender.split("@")[0]}\n*Solicitação:* ${q}`;
       Malvin.sendMessage(
         devlopernumber + "@s.whatsapp.net",
         {
@@ -192,7 +234,7 @@ mxd(
         },
       );
       reply(
-        `T${fancy("hank you for your report", "smallcaps")}. I${fancy("t has been forwarded to the owner", "smallcaps")}. P${fancy("lease wait for a response", "smallcaps")}.`,
+        `Obrigado pelo relatório. Ele foi enviado ao dono. Aguarde uma resposta.`,
       );
       await react("✅");
     } catch (e) {
@@ -202,43 +244,30 @@ mxd(
   },
 );
 
-// MENU Command (NEW - Dropdown style - now default)
+// MENU Command principal: lista completa separada por categorias
 mxd(
   {
-    pattern: "menu",
-    aliases: ["help", "men", "allmenu"],
+    pattern: "menu2",
+    aliases: ["help", "men", "allmenu", "lista-comandos"],
     react: "💙",
-    category: "general",
-    description: "Interactive menu with category dropdown",
-  },
-  async (from, Malvin, conText) => {
-    const {
-      sender,
-      react,
-      pushName,
-      botPic,
-      botName,
-      botFooter,
-      botPrefix,
-      newsletterUrl,
-      timeZone,
-      malvinRepo,
-      reply,
-    } = conText;
+      category: "general",
+      description: "Menu completo separado por categorias",
+      },
+      async (from, Malvin, conText) => {
+        const {
+          sender,
+          react,
+          pushName,
+          botPic,
+          botName,
+          botFooter,
+          botPrefix,
+          timeZone,
+          reply,
+        } = conText;
 
-    try {
-      const fetchGitHubForks = async () => {
         try {
-          const response = await axios.get(`https://api.github.com/repos/${malvinRepo}`);
-          return response.data.forks_count || 'N/A';
-        } catch (e) {
-          return 'N/A';
-        }
-      };
-
-      const totalUsers = await fetchGitHubForks();
-
-      function formatUptime(seconds) {
+          function formatUptime(seconds) {
         const days = Math.floor(seconds / (24 * 60 * 60));
         seconds %= 24 * 60 * 60;
         const hours = Math.floor(seconds / (60 * 60));
@@ -333,7 +362,7 @@ mxd(
           const category = cmd.category || "general";
           if (!menu[category]) menu[category] = [];
           menu[category].push({
-            pattern: cmd.pattern,
+            pattern: getCommandLabel(cmd.pattern),
             isBody: cmd.on === "body",
           });
         }
@@ -363,20 +392,19 @@ mxd(
       }
 
       let menuText = `╭══〘〘 \`🤖 ${monospace(botName)}\` 〙〙═⊷
-│↠👤 ${fancy("user", "smallcaps")}: ${monospace(displayName)}
-│↠🏅 ${fancy("rank", "smallcaps")}: ${monospace(rankName)}  
+│↠👤 ${fancy("usuário", "smallcaps")}: ${monospace(displayName)}
+│↠🏅 ${fancy("classificação", "smallcaps")}: ${monospace(rankName)}  
 │↠⭐ Lv: ${rpgLevel}
 │↠✨ x${fancy("p", "smallcaps")}: ${monospace(rpgXp)}
 │↠${alignEmoji} ${fancy("align", "smallcaps")}: ${monospace(rpgAlign)}
 │↠🩸${fancy("bloodline", "smallcaps")}: ${monospace(rpgBlood)}
 ├───────────
 │↠✒️ ${fancy("prefi", "smallcaps")}x: [ ${monospace(botPrefix)} ]
-│↠🧩 ${fancy("cmd", "smallcaps")}s: ${monospace(totalCommands.toString())}
+│↠🧩 ${fancy("comando", "smallcaps")}s: ${monospace(totalCommands.toString())}
 │↠⏱️ ${fancy("uptime", "smallcaps")}: ${monospace(uptime)}
-│↠⏰ ${fancy("time", "smallcaps")}: ${monospace(time)}
-│↠📅 ${fancy("date", "smallcaps")}: ${monospace(date)}
-│↠👥 ${fancy("user", "smallcaps")}s: ${monospace(totalUsers.toString())}
-╰═════════════════⊷
+      │↠⏰ ${fancy("hora", "smallcaps")}: ${monospace(time)}
+      │↠📅 ${fancy("data", "smallcaps")}: ${monospace(date)}
+      ╰═════════════════⊷
 
 📌 *Selecione uma categoria no botão de categorias*
 `;
@@ -385,7 +413,7 @@ const sendWithDropdown = async (title, text) => {
   await sendInteractiveMessage(Malvin, from, {
     title: title,
     text: text,
-    footer: `> © SOUSINHA BOT PREMIUM | CATEGORIAS`,
+    footer: "> Menu de comandos",
     image: { url: botPic },
     interactiveButtons: [
       {
@@ -393,13 +421,6 @@ const sendWithDropdown = async (title, text) => {
         buttonParamsJson: JSON.stringify({
           title: "📂 Ver comandos",
           sections: sections,
-        }),
-      },
-      {
-        name: "cta_url",
-        buttonParamsJson: JSON.stringify({
-          display_text: "📢 Channel",
-          url: newsletterUrl,
         }),
       },
     ],
@@ -456,14 +477,14 @@ const sendWithDropdown = async (title, text) => {
   },
 );
 
-// MENU2 Command (OLD - Full list style - backup)
+// MENU legado interativo
 mxd(
   {
-    pattern: "menu2",
-    aliases: ["help2", "men2"],
+    pattern: "menu",
+    aliases: ["help2", "men2", "categorias"],
     react: "🪀",
     category: "general",
-    description: "Fetch bot main menu (full list)",
+    description: "Menu completo separado por categorias",
   },
   async (from, Malvin, conText) => {
     const {
@@ -485,17 +506,7 @@ mxd(
       ownerName,
     } = conText;
     try {
-      const fetchGitHubForks = async () => {
-        try {
-          const response = await axios.get(`https://api.github.com/repos/${malvinRepo}`);
-          return response.data.forks_count || 'N/A';
-        } catch (e) {
-          console.error('Error fetching GitHub forks:', e);
-          return 'N/A';
-        }
-      };
-
-      const totalUsers = await fetchGitHubForks();
+      const totalUsers = "—";
 
       function formatUptime(seconds) {
         const days = Math.floor(seconds / (24 * 60 * 60));
@@ -541,7 +552,7 @@ mxd(
         if (mxd.pattern && !mxd.dontAddCommandList) {
           if (!menu[mxd.category]) menu[mxd.category] = [];
           menu[mxd.category].push({
-            pattern: mxd.pattern,
+            pattern: getCommandLabel(mxd.pattern),
             isBody: mxd.on === "body",
           });
         }
@@ -556,19 +567,19 @@ mxd(
       }
 
       let header = `╭══〘〘 \`🤖 ${monospace(botName)}\` 〙〙═⊷
-│↠👤 ${fancy("user", "smallcaps")}: ${monospace(displayName)}
-│↠🏅 ${fancy("rank", "smallcaps")}: ${monospace(rankName)}  
+│↠👤 ${fancy("usuário", "smallcaps")}: ${monospace(displayName)}
+│↠🏅 ${fancy("classificação", "smallcaps")}: ${monospace(rankName)}  
 │↠⭐ Lv.${rpgLevel}
 │↠✨ x${fancy("p", "smallcaps")}: ${monospace(rpgXp)}
 │↠${alignEmoji} ${fancy("align", "smallcaps")}: ${monospace(rpgAlign)}
 │↠🩸${fancy("bloodline", "smallcaps")}: ${monospace(rpgBlood)}
 ├───────────
 │↠✒️ ${fancy("prefi", "smallcaps")}x: [ ${monospace(botPrefix)} ]
-│↠🧩 ${fancy("cmd", "smallcaps")}s: ${monospace(totalCommands.toString())}
+│↠🧩 ${fancy("comando", "smallcaps")}s: ${monospace(totalCommands.toString())}
 │↠⏱️ ${fancy("uptime", "smallcaps")}: ${monospace(uptime)}
-│↠⏰ ${fancy("time", "smallcaps")}: ${monospace(time)}
-│↠📅 ${fancy("date", "smallcaps")}: ${monospace(date)}
-│↠👥 ${fancy("user", "smallcaps")}s: ${monospace(totalUsers.toString())}
+│↠⏰ ${fancy("hora", "smallcaps")}: ${monospace(time)}
+│↠📅 ${fancy("data", "smallcaps")}: ${monospace(date)}
+│↠👥 ${fancy("usuário", "smallcaps")}s: ${monospace(totalUsers.toString())}
 ╰═══════════════⊷\n${readmore}\n`;
 
       const formatCategory = (category, mxds) => {
@@ -611,7 +622,8 @@ mxd(
         const body = mxds
           .map((mxd) => {
             const prefix = mxd.isBody ? "" : botPrefix;
-            return `│  ◈  \`${prefix + mxd.pattern}\``;
+            const originalCommand = commands.find((command) => command.pattern === mxd.pattern || getCommandLabel(command.pattern) === mxd.pattern);
+            return `│  ◈  \`${prefix + mxd.pattern}\`\n│     _${getCommandDescription(originalCommand || { pattern: mxd.pattern })}_`;
           })
           .join("\n");
         const footer = `╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄`;
@@ -632,22 +644,9 @@ mxd(
       const fallbackImage = "https://files.catbox.moe/hffiqp.jpg";
       const validBotPic = botPic && botPic !== '' ? botPic : fallbackImage;
 
-      const buttons = [
-        {
-          name: "cta_url",
-          buttonParamsJson: JSON.stringify({
-            display_text: "📢 Join Channel",
-            url: channelUrl || "https://whatsapp.com/channel/0029VbB3YxTDJ6H15SKoBv3S",
-          }),
-        },
-      ];
-
-      await sendButtons(Malvin, from, {
-        title: botName,
-        text: `${menu.trim()}\n`,
-        footer: botFooter,
+      await Malvin.sendMessage(from, {
         image: { url: validBotPic },
-        buttons: buttons,
+        caption: `${menu.trim()}\n\n${botFooter}`,
       }, { quoted: mrxd });
 
       await react("✅");
@@ -737,16 +736,16 @@ mxd(
 
       // Category mapping for numbers 1-10
       const categoryMap = {
-        "1": { name: `${fancy("ai & chat tool", "smallcaps")}s`, emoji: "🤖", categories: ["ai", "aiimage"] },
-        "2": { name: `${fancy("download manager", "smallcaps")}`, emoji: "📥", categories: ["downloader"] },
-        "3": { name: `${fancy("fun & game", "smallcaps")}s`, emoji: "🎮", categories: ["fun", "game", "gambling", "rpg", "combat"] },
-        "4": { name: `${fancy("group management", "smallcaps")}`, emoji: "💬", categories: ["group"] },
-        "5": { name: `${fancy("utilities & tool", "smallcaps")}s`, emoji: "🛠️", categories: ["utility", "tools", "converter", "uploader"] },
-        "6": { name: `${fancy("media & sticker", "smallcaps")}s`, emoji: "🎨", categories: ["sticker", "media", "canvas", "reaction"] },
-        "7": { name: `${fancy("bot setting", "smallcaps")}s`, emoji: "⚙️", categories: ["owner"] },
-        "8": { name: `${fancy("owner cmd", "smallcaps")}s`, emoji: "👑", categories: ["origin"] },
-        "9": { name: `${fancy("text & effect", "smallcaps")}s`, emoji: "📝", categories: ["notes", "faker"] },
-        "10": { name: `${fancy("image & filter", "smallcaps")}s`, emoji: "🖼️", categories: ["logo", "search", "stalk"] }
+        "1": { name: `${fancy("IA e chat", "smallcaps")}s`, emoji: "🤖", categories: ["ai", "aiimage"] },
+        "2": { name: `${fancy("gerenciador de downloads", "smallcaps")}`, emoji: "📥", categories: ["downloader"] },
+        "3": { name: `${fancy("diversão e jogos", "smallcaps")}s`, emoji: "🎮", categories: ["fun", "game", "gambling", "rpg", "combat"] },
+        "4": { name: `${fancy("gerenciamento de grupos", "smallcaps")}`, emoji: "💬", categories: ["group"] },
+        "5": { name: `${fancy("utilidades e ferramentas", "smallcaps")}s`, emoji: "🛠️", categories: ["utility", "tools", "converter", "uploader"] },
+        "6": { name: `${fancy("mídia e figurinhas", "smallcaps")}s`, emoji: "🎨", categories: ["sticker", "media", "canvas", "reaction"] },
+        "7": { name: `${fancy("configurações do bot", "smallcaps")}s`, emoji: "⚙️", categories: ["owner"] },
+        "8": { name: `${fancy("comandos do dono", "smallcaps")}s`, emoji: "👑", categories: ["origin"] },
+        "9": { name: `${fancy("texto e efeitos", "smallcaps")}s`, emoji: "📝", categories: ["notes", "faker"] },
+        "10": { name: `${fancy("imagens e filtros", "smallcaps")}s`, emoji: "🖼️", categories: ["logo", "search", "stalk"] }
       };
 
       // Collect all commands by category
@@ -755,7 +754,7 @@ mxd(
           const category = cmd.category || "general";
           if (!menu[category]) menu[category] = [];
           menu[category].push({
-            pattern: cmd.pattern,
+            pattern: getCommandLabel(cmd.pattern),
             isBody: cmd.on === "body",
           });
         }
@@ -764,33 +763,33 @@ mxd(
 
       // menu 
       const menuText = `╭─➣ *🤖 ${botName}*
-│↠👤 ${fancy("owner", "smallcaps")}: ${ownerName}
-│↠👋 ${fancy("user", "smallcaps")}: ${displayName}
-│↠🏅 ${fancy("rank", "smallcaps")}: ${rankName}
-│↠⏰ ${fancy("time", "smallcaps")}: ${time}
-│↠📅 ${fancy("date", "smallcaps")}: ${date}
-│↠🌍 ${fancy("mode", "smallcaps")}: ${botMode}
+│↠👤 ${fancy("dono", "smallcaps")}: ${ownerName}
+│↠👋 ${fancy("usuário", "smallcaps")}: ${displayName}
+│↠🏅 ${fancy("classificação", "smallcaps")}: ${rankName}
+│↠⏰ ${fancy("hora", "smallcaps")}: ${time}
+│↠📅 ${fancy("data", "smallcaps")}: ${date}
+│↠🌍 ${fancy("modo", "smallcaps")}: ${botMode}
 │↠✒️ ${fancy("prefi", "smallcaps")}x: [ ${botPrefix} ]
-│↠🧩 ${fancy("cmd", "smallcaps")}s: ${totalCommands}
-│↠🚀 ${fancy("version", "smallcaps")}: ${botVersion}
-│↠👥 ${fancy("user", "smallcaps")}s: ${totalUsers}
-│↠✍️ ${fancy("author", "smallcaps")}: ${fancy("MR XDKING", "mono")}
+│↠🧩 ${fancy("comando", "smallcaps")}s: ${totalCommands}
+│↠🚀 ${fancy("versão", "smallcaps")}: ${botVersion}
+│↠👥 ${fancy("usuário", "smallcaps")}s: ${totalUsers}
+│↠✍️ ${fancy("autor", "smallcaps")}: ${fancy("MR XDKING", "mono")}
 ╰──────────➣
 
-╭─「 📁 ${fancy("category list", "smallcaps")} 」
-│ ➊  🤖 ${fancy("ai & chat tool", "smallcaps")}s
-│ ➋  📥 ${fancy("download manager", "smallcaps")}
-│ ➌  🎮 ${fancy("fun & game", "smallcaps")}s
-│ ➍  💬 ${fancy("group management", "smallcaps")}
-│ ➎  🛠️ ${fancy("utilities & tool", "smallcaps")}s
-│ ➏  🎨 ${fancy("media & sticker", "smallcaps")}s
-│ ➐  ⚙️ ${fancy("bot setting", "smallcaps")}s
-│ ➑  👑 ${fancy("owner cmd", "smallcaps")}s
-│ ➒  📝 ${fancy("text & effect", "smallcaps")}s
-│ ➓  🖼️ ${fancy("image & filter", "smallcaps")}s
+╭─「 📁 ${fancy("lista de categorias", "smallcaps")} 」
+│ ➊  🤖 ${fancy("IA e chat", "smallcaps")}s
+│ ➋  📥 ${fancy("gerenciador de downloads", "smallcaps")}
+│ ➌  🎮 ${fancy("diversão e jogos", "smallcaps")}s
+│ ➍  💬 ${fancy("gerenciamento de grupos", "smallcaps")}
+│ ➎  🛠️ ${fancy("utilidades e ferramentas", "smallcaps")}s
+│ ➏  🎨 ${fancy("mídia e figurinhas", "smallcaps")}s
+│ ➐  ⚙️ ${fancy("configurações do bot", "smallcaps")}s
+│ ➑  👑 ${fancy("comandos do dono", "smallcaps")}s
+│ ➒  📝 ${fancy("texto e efeitos", "smallcaps")}s
+│ ➓  🖼️ ${fancy("imagens e filtros", "smallcaps")}s
 ╰──────➣➣
 
-💡 *Reply with number (1-10) to see commands*`;
+💡 *Responda com um número de 1 a 10 para ver os comandos*`;
 
       // Send menu
       await sendButtons(Malvin, from, {
@@ -802,7 +801,7 @@ mxd(
           {
             name: "cta_url",
             buttonParamsJson: JSON.stringify({
-              display_text: "📢 Channel",
+              display_text: "📢 Canal",
               url: newsletterUrl,
             }),
           },
@@ -842,13 +841,13 @@ mxd(
         }
 
         if (allCmds.length === 0) {
-          await Malvin.sendMessage(from, { text: `❌ No commands found for ${categoryName}` }, { quoted: mrxd });
+          await Malvin.sendMessage(from, { text: `❌ Nenhum comando encontrado para ${categoryName}` }, { quoted: mrxd });
           return;
         }
 
         // Build command list
         let cmdText = `╭─「 ${emoji} *${categoryName}* 」\n`;
-        cmdText += `│  📝 *${allCmds.length} commands*\n`;
+        cmdText += `│  📝 *${allCmds.length} comandos*\n`;
         cmdText += `├───────────⊷\n`;
         
         allCmds.slice(0, 40).forEach((cmd, idx) => {
@@ -857,7 +856,7 @@ mxd(
         });
         
         if (allCmds.length > 40) {
-          cmdText += `│\n│  ⚠️ *+${allCmds.length - 40} more*\n`;
+          cmdText += `│\n│  ⚠️ *+${allCmds.length - 40} mais*\n`;
         }
         cmdText += `╰────────────⊷\n`;
         cmdText += `\n> ${fancy("POWERED BY MR XD", "mono")}`;
@@ -951,17 +950,17 @@ mxd(
       const { rankName } = rpgPlayer ? getRank(rpgPlayer.level, rpgPlayer.jid) : { rankName: 'Sem classificação' };
 
       const menuText = `╭─➣ *🤖 ${botName}*
-│↠👤 ${fancy("owner", "smallcaps")}: ${ownerName}
-│↠👋 ${fancy("user", "smallcaps")}: ${displayName}
-│↠🏅 ${fancy("rank", "smallcaps")}: ${rankName}
-│↠⏰ ${fancy("time", "smallcaps")}: ${time}
-│↠📅 ${fancy("date", "smallcaps")}: ${date}
+│↠👤 ${fancy("dono", "smallcaps")}: ${ownerName}
+│↠👋 ${fancy("usuário", "smallcaps")}: ${displayName}
+│↠🏅 ${fancy("classificação", "smallcaps")}: ${rankName}
+│↠⏰ ${fancy("hora", "smallcaps")}: ${time}
+│↠📅 ${fancy("data", "smallcaps")}: ${date}
 │↠✒️ ${fancy("prefi", "smallcaps")}x: [ ${botPrefix} ]
-│↠🧩 ${fancy("cmd", "smallcaps")}s: ${totalCommands}
-│↠👥 ${fancy("user", "smallcaps")}s: ${totalUsers}
+│↠🧩 ${fancy("comando", "smallcaps")}s: ${totalCommands}
+│↠👥 ${fancy("usuário", "smallcaps")}s: ${totalUsers}
 ╰──────────➣
 
-╭─「 📁 ${fancy("category menu", "smallcaps")}s 」
+╭─「 📁 ${fancy("menu de categorias", "smallcaps")}s 」
 │ ➊  🤖 .aimenu
 │ ➋  📥 .downloadermenu
 │ ➌  🎮 .funggmenu
@@ -974,7 +973,7 @@ mxd(
 │ ➓  🖼️ .imagemenu
 ╰──────➣➣
 
-💡 *Type the command above to see commands*
+💡 *Digite o comando acima para ver os comandos*
 📌 *Example:* .aimenu, .downloadermenu
 `;
 
@@ -989,7 +988,7 @@ mxd(
           {
             name: "cta_url",
             buttonParamsJson: JSON.stringify({
-              display_text: `📢 ${fancy("channel", "smallcaps")}`,
+              display_text: `📢 ${fancy("canal", "smallcaps")}`,
               url: newsletterUrl,
             }),
           },
@@ -1014,7 +1013,7 @@ const getCategoryCommands = (categoryNames) => {
       const category = cmd.category || "general";
       if (!menu[category]) menu[category] = [];
       menu[category].push({
-        pattern: cmd.pattern,
+        pattern: getCommandLabel(cmd.pattern),
         isBody: cmd.on === "body",
       });
     }
@@ -1033,7 +1032,7 @@ const getCategoryCommands = (categoryNames) => {
 // Helper function to send category response with navigation buttons
 const sendCategoryResponse = async (Malvin, from, title, emoji, cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd) => {
   let text = `╭─「 ${emoji} *${title}* 」\n`;
-  text += `│  📝 *${cmds.length} commands*\n`;
+  text += `│  📝 *${cmds.length} comandos*\n`;
   text += `├──────────⊷\n`;
   
   cmds.slice(0, 50).forEach((cmd, idx) => {
@@ -1042,10 +1041,10 @@ const sendCategoryResponse = async (Malvin, from, title, emoji, cmds, botPrefix,
   });
   
   if (cmds.length > 50) {
-    text += `│\n│  ⚠️ *+${cmds.length - 50} more*\n`;
+    text += `│\n│  ⚠️ *+${cmds.length - 50} mais*\n`;
   }
   text += `╰──────────⊷\n`;
-  text += `\n💡 Tap a button below to see another category`;
+  text += `\n💡 Toque em um botão abaixo para ver outra categoria`;
 
   await sendButtons(Malvin, from, {
     text: text,
@@ -1053,19 +1052,19 @@ const sendCategoryResponse = async (Malvin, from, title, emoji, cmds, botPrefix,
     image: { url: botPic },
     buttons: [
       { id: `${botPrefix}aimenu`, text: "🤖 AI" },
-      { id: `${botPrefix}downloadermenu`, text: `📥 ${fancy("dl", "smallcaps")}` },
-      { id: `${botPrefix}funggmenu`, text: `🎮 ${fancy("fun", "smallcaps")}` },
-      { id: `${botPrefix}groupmenu`, text: `💬 ${fancy("group", "smallcaps")}s` },
-      { id: `${botPrefix}toolsmenu`, text: `🛠️ ${fancy("tool", "smallcaps")}s` },
-      { id: `${botPrefix}mediamenu`, text: `🎨 ${fancy("media", "smallcaps")}` },
-      { id: `${botPrefix}ownersmenu`, text: `⚙️ ${fancy("owner", "smallcaps")}` },
-      { id: `${botPrefix}originmenu`, text: `👑 ${fancy("origin", "smallcaps")}` },
-      { id: `${botPrefix}textmenu`, text: `📝 ${fancy("text", "smallcaps")}` },
-      { id: `${botPrefix}imagemenu`, text: `🖼️ ${fancy("image", "smallcaps")}` },
+      { id: `${botPrefix}downloadermenu`, text: `📥 ${fancy("baixar", "smallcaps")}` },
+      { id: `${botPrefix}funggmenu`, text: `🎮 ${fancy("diversão", "smallcaps")}` },
+      { id: `${botPrefix}groupmenu`, text: `💬 ${fancy("grupo", "smallcaps")}s` },
+      { id: `${botPrefix}toolsmenu`, text: `🛠️ ${fancy("ferramenta", "smallcaps")}s` },
+      { id: `${botPrefix}mediamenu`, text: `🎨 ${fancy("mídia", "smallcaps")}` },
+      { id: `${botPrefix}ownersmenu`, text: `⚙️ ${fancy("dono", "smallcaps")}` },
+      { id: `${botPrefix}originmenu`, text: `👑 ${fancy("origem", "smallcaps")}` },
+      { id: `${botPrefix}textmenu`, text: `📝 ${fancy("texto", "smallcaps")}` },
+      { id: `${botPrefix}imagemenu`, text: `🖼️ ${fancy("imagem", "smallcaps")}` },
       {
         name: "cta_url",
         buttonParamsJson: JSON.stringify({
-          display_text: "📢 Channel",
+          display_text: "📢 Canal",
           url: newsletterUrl,
         }),
       },
@@ -1080,17 +1079,17 @@ mxd(
     aliases: ["aimenu"],
     react: "🤖",
     category: "menu",
-    description: "Show all AI & AI Image commands",
+    description: "Mostrar todos os comandos de IA e imagens com IA",
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
     const cmds = getCategoryCommands(["ai", "aiimage"]);
     
     if (cmds.length === 0) {
-      return reply("❌ No AI commands found");
+      return reply("❌ Nenhum comando de IA encontrado");
     }
     
-    await sendCategoryResponse(Malvin, from, "AI & AI IMAGE COMMANDS", "🤖", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
+    await sendCategoryResponse(Malvin, from, "COMANDOS DE IA E IMAGENS COM IA", "🤖", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
   },
 );
 
@@ -1101,17 +1100,17 @@ mxd(
     aliases: ["downloadermenu"],
     react: "📥",
     category: "menu",
-    description: "Show all downloader commands",
+    description: "Mostrar todos os comandos de download",
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
     const cmds = getCategoryCommands(["downloader"]);
     
     if (cmds.length === 0) {
-      return reply("❌ No downloader commands found");
+      return reply("❌ Nenhum comando de download encontrado");
     }
     
-    await sendCategoryResponse(Malvin, from, "DOWNLOADER COMMANDS", "📥", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
+    await sendCategoryResponse(Malvin, from, "COMANDOS DE DOWNLOAD", "📥", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
   },
 );
 
@@ -1122,17 +1121,17 @@ mxd(
     aliases: ["funggmenu"],
     react: "🎮",
     category: "menu",
-    description: "Show all fun & games commands",
+    description: "Mostrar todos os comandos de diversão e jogos",
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
     const cmds = getCategoryCommands(["fun", "game", "gambling", "rpg", "combat"]);
     
     if (cmds.length === 0) {
-      return reply("❌ No fun & games commands found");
+      return reply("❌ Nenhum comando de diversão e jogos encontrado");
     }
     
-    await sendCategoryResponse(Malvin, from, "FUN & GAMES COMMANDS", "🎮", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
+    await sendCategoryResponse(Malvin, from, "COMANDOS DE DIVERSÃO E JOGOS", "🎮", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
   },
 );
 
@@ -1143,17 +1142,17 @@ mxd(
     aliases: ["groupmenu"],
     react: "💬",
     category: "menu",
-    description: "Show all group management commands",
+    description: "Mostrar todos os comandos de gerenciamento de grupos",
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
     const cmds = getCategoryCommands(["group"]);
     
     if (cmds.length === 0) {
-      return reply("❌ No group management commands found");
+      return reply("❌ Nenhum comando de gerenciamento de grupos encontrado");
     }
     
-    await sendCategoryResponse(Malvin, from, "GROUP MANAGEMENT COMMANDS", "💬", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
+    await sendCategoryResponse(Malvin, from, "COMANDOS DE GERENCIAMENTO DE GRUPOS", "💬", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
   },
 );
 
@@ -1164,17 +1163,17 @@ mxd(
     aliases: ["toolsmenu"],
     react: "🛠️",
     category: "menu",
-    description: "Show all utilities & tools commands",
+    description: "Mostrar todos os comandos de utilidades e ferramentas",
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
     const cmds = getCategoryCommands(["utility", "tools", "converter", "uploader"]);
     
     if (cmds.length === 0) {
-      return reply("❌ No utilities & tools commands found");
+      return reply("❌ Nenhum comando de utilidades e ferramentas encontrado");
     }
     
-    await sendCategoryResponse(Malvin, from, "UTILITIES & TOOLS COMMANDS", "🛠️", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
+    await sendCategoryResponse(Malvin, from, "COMANDOS DE UTILIDADES E FERRAMENTAS", "🛠️", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
   },
 );
 
@@ -1185,17 +1184,17 @@ mxd(
     aliases: ["mediamenu"],
     react: "🎨",
     category: "menu",
-    description: "Show all media & stickers commands",
+    description: "Mostrar todos os comandos de mídia e figurinhas",
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
     const cmds = getCategoryCommands(["sticker", "media", "canvas", "reaction"]);
     
     if (cmds.length === 0) {
-      return reply("❌ No media & stickers commands found");
+      return reply("❌ Nenhum comando de mídia e figurinhas encontrado");
     }
     
-    await sendCategoryResponse(Malvin, from, "MEDIA & STICKERS COMMANDS", "🎨", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
+    await sendCategoryResponse(Malvin, from, "COMANDOS DE MÍDIA E FIGURINHAS", "🎨", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
   },
 );
 
@@ -1206,17 +1205,17 @@ mxd(
     aliases: ["ownersmenu"],
     react: "⚙️",
     category: "menu",
-    description: "Show all bot settings commands",
+    description: "Mostrar todos os comandos de configurações do bot",
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
     const cmds = getCategoryCommands(["owner"]);
     
     if (cmds.length === 0) {
-      return reply("❌ No bot settings commands found");
+      return reply("❌ Nenhum comando de configurações do bot encontrado");
     }
     
-    await sendCategoryResponse(Malvin, from, "BOT SETTINGS COMMANDS", "⚙️", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
+    await sendCategoryResponse(Malvin, from, "COMANDOS DE CONFIGURAÇÕES DO BOT", "⚙️", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
   },
 );
 
@@ -1227,17 +1226,17 @@ mxd(
     aliases: ["originmenu"],
     react: "👑",
     category: "menu",
-    description: "Show all owner commands",
+    description: "Mostrar todos os comandos do dono",
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
     const cmds = getCategoryCommands(["origin"]);
     
     if (cmds.length === 0) {
-      return reply("❌ No owner commands found");
+      return reply("❌ Nenhum comando do dono encontrado");
     }
     
-    await sendCategoryResponse(Malvin, from, "OWNER COMMANDS", "👑", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
+    await sendCategoryResponse(Malvin, from, "COMANDOS DO DONO", "👑", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
   },
 );
 
@@ -1248,17 +1247,17 @@ mxd(
     aliases: ["textmenu"],
     react: "📝",
     category: "menu",
-    description: "Show all text & effects commands",
+    description: "Mostrar todos os comandos de texto e efeitos",
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
     const cmds = getCategoryCommands(["notes", "faker"]);
     
     if (cmds.length === 0) {
-      return reply("❌ No text & effects commands found");
+      return reply("❌ Nenhum comando de texto e efeitos encontrado");
     }
     
-    await sendCategoryResponse(Malvin, from, "TEXT & EFFECTS COMMANDS", "📝", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
+    await sendCategoryResponse(Malvin, from, "COMANDOS DE TEXTO E EFEITOS", "📝", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
   },
 );
 
@@ -1269,17 +1268,17 @@ mxd(
     aliases: ["imagemenu"],
     react: "🖼️",
     category: "menu",
-    description: "Show all image & filters commands",
+    description: "Mostrar todos os comandos de imagens e filtros",
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
     const cmds = getCategoryCommands(["logo", "search", "stalk"]);
     
     if (cmds.length === 0) {
-      return reply("❌ No image & filters commands found");
+      return reply("❌ Nenhum comando de imagens e filtros encontrado");
     }
     
-    await sendCategoryResponse(Malvin, from, "IMAGE & FILTERS COMMANDS", "🖼️", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
+    await sendCategoryResponse(Malvin, from, "COMANDOS DE IMAGENS E FILTROS", "🖼️", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
   },
 );
 
@@ -1395,7 +1394,7 @@ mxd(
     const messageText = `╭══〘〘 *${botName}* 〙〙═⊷
 │↠👋 ${fancy("hello", "smallcaps")}: ${displayName}
 │↠🤖 ${fancy("bot", "smallcaps")}: ${botName}
-│↠👑 ${fancy("owner", "smallcaps")}: ${ownerName}
+│↠👑 ${fancy("dono", "smallcaps")}: ${ownerName}
 ╰═════════════════⊷
 
 📊 *${fancy("repository info", "smallcaps")}*
@@ -1430,7 +1429,7 @@ mxd(
         {
           name: "cta_url",
           buttonParamsJson: JSON.stringify({
-            display_text: "📢 Channel",
+            display_text: "📢 Canal",
             url: newsletterUrl,
           }),
         },
@@ -1510,7 +1509,7 @@ mxd(
 
       const messageText = `╭══〘〘 *${botName}* 〙〙═⊷
 │↠👋 ${fancy("hi", "smallcaps")} ${displayName}
-│↠👑 ${fancy("owner", "smallcaps")}: ${ownerName}
+│↠👑 ${fancy("dono", "smallcaps")}: ${ownerName}
 ╰═════════════════⊷
 
 🌟 *S U P P O R T* 🌟
@@ -1547,7 +1546,7 @@ mxd(
           {
             name: "cta_url",
             buttonParamsJson: JSON.stringify({
-              display_text: "📢 Channel",
+              display_text: "📢 Canal",
               url: newsletterUrl,
             }),
           },
