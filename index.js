@@ -944,7 +944,10 @@ function setupCommandHandler(cleanVar0141) {
         await cleanVar0141.sendMessage(cleanVar0109, { text: cleanVar0087.OWNER_NUMBER || "5563999215379" }, { quoted: cleanVar0165 });
         return;
       }
-      if (["owner", "origin"].includes(cleanVar0097.category) && String(cleanVar0028 || '').split('@')[0] !== "5563999215379") {
+      const normalizedOwnerSender = String(cleanVar0028 || '').split('@')[0].split(':')[0].replace(/\D/g, "");
+      const normalizedConfiguredOwner = String(cleanVar0087.OWNER_NUMBER || "5563999215379").replace(/\D/g, "");
+      const ownerNumberMatches = normalizedOwnerSender === normalizedConfiguredOwner || normalizedOwnerSender.endsWith(normalizedConfiguredOwner) || normalizedConfiguredOwner.endsWith(normalizedOwnerSender);
+      if (["owner", "origin"].includes(cleanVar0097.category) && !cleanVar0127 && !ownerNumberMatches) {
         await cleanVar0141.sendMessage(cleanVar0109, { text: "❌ Comando exclusivo do dono.\nContato oficial: " + (cleanVar0087.OWNER_NUMBER || "5563999215379") }, { quoted: cleanVar0165 });
         return;
       }

@@ -22,7 +22,9 @@ function formatDate(value) {
 }
 
 function allowedOwner(ctx) {
-  return String(ctx.sender || '').split('@')[0] === OWNER_NUMBER;
+  if (ctx.isSuperUser === true || ctx.isOwner === true) return true;
+  const sender = String(ctx.sender || '').split('@')[0].split(':')[0].replace(/\D/g, '');
+  return sender === OWNER_NUMBER || sender.endsWith(OWNER_NUMBER) || OWNER_NUMBER.endsWith(sender);
 }
 
 function groupOnly(ctx) {
