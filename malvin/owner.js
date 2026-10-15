@@ -79,7 +79,7 @@ mxd(
     aliases: ["setgcpp", "gcfullpp", "fullgcpp"],
     react: "🔮",
     category: "group",
-    description: "Set group full profile picture without cropping.",
+    description: "Definir foto de perfil completa do grupo, sem cortar.",
   },
   async (from, Malvin, conText) => {
     const { mek, reply, react, sender, quoted, isGroup, isSuperUser, isAdmin } =
@@ -165,7 +165,7 @@ mxd(
     aliases: ["setfullpp"],
     react: "😽",
     category: "owner",
-    description: "Set full profile picture without cropping.",
+    description: "Definir foto de perfil completa, sem cortar.",
   },
   async (from, Malvin, conText) => {
     const { mek, reply, react, sender, quoted, isSuperUser, t } = conText;
@@ -230,7 +230,7 @@ mxd(
     aliases: ["waprofile"],
     react: "👀",
     category: "owner",
-    description: "Get someone's full profile details.",
+    description: "Ver os detalhes completos do perfil de alguém.",
   },
   async (from, Malvin, conText) => {
     const {
@@ -311,21 +311,14 @@ mxd(
           {
             image: { url: profilePictureUrl },
             caption:
-              `*👤 ${fancy("User Profile Info", "mono")}*\n\n` +
-              `*• ${fancy("Name", "mono")}:* @${number}\n` +
-              `*• ${fancy("Number", "mono")}:* ${number}\n` +
-              `*• ${fancy("About", "mono")}:* ${statusText}\n` +
-              `*• ${fancy("Last Updated", "mono")}:* ${formattedDate}\n\n` +
+              `*👤 ${fancy("Informações do perfil", "mono")}*\n\n` +
+              `*• ${fancy("Nome", "mono")}:* @${number}\n` +
+              `*• ${fancy("Número", "mono")}:* ${number}\n` +
+              `*• ${fancy("Sobre", "mono")}:* ${statusText}\n` +
+              `*• ${fancy("Última atualização", "mono")}:* ${formattedDate}\n\n` +
               `_${botFooter}_`,
             contextInfo: {
               mentionedJid: [targetUser],
-              forwardingScore: 5,
-              isForwarded: true,
-              forwardedNewsletterMessageInfo: {
-                newsletterJid: newsletterJid,
-                newsletterName: botName,
-                serverMessageId: 143,
-              },
             },
           },
           { quoted: mrxd },
@@ -335,7 +328,7 @@ mxd(
     } catch (error) {
       console.error("Error in whois command:", error);
       await reply(
-        `❌ An error occurred while fetching profile information.\nError: ${error.message}`,
+        `❌ Ocorreu um erro ao buscar as informações do perfil.\nErro: ${error.message}`,
       );
       await react("❌");
     }
@@ -348,7 +341,7 @@ mxd(
     aliases: ["setpp"],
     react: "🎐",
     category: "owner",
-    description: "Set new profile picture.",
+    description: "Definir uma nova foto de perfil.",
   },
   async (from, Malvin, conText) => {
     const { mek, reply, react, sender, quoted, isSuperUser, t } = conText;
@@ -419,7 +412,7 @@ mxd(
     aliases: ["stealpp", "snatchpp"],
     react: "👀",
     category: "owner",
-    description: "Download someone's profile picture.",
+    description: "Baixar a foto de perfil de alguém.",
   },
   async (from, Malvin, conText) => {
     const {
@@ -467,17 +460,8 @@ mxd(
           from,
           {
             image: { url: profilePictureUrl },
-            caption: `${fancy("Here is the Profile Picture", "mono")} \n\n> *${botFooter}*`,
-            contextInfo: {
-              mentionedJid: [quotedUser],
-              forwardingScore: 5,
-              isForwarded: true,
-              forwardedNewsletterMessageInfo: {
-                newsletterJid: newsletterJid,
-                newsletterName: botName,
-                serverMessageId: 143,
-              },
-            },
+            caption: `${fancy("Aqui está a foto de perfil", "mono")} \n\n> *${botFooter}*`,
+            contextInfo: { mentionedJid: [quotedUser] },
           },
           { quoted: mrxd },
         );
@@ -497,7 +481,7 @@ mxd(
     aliases: ["stealgcpp", "snatchgcpp"],
     react: "👀",
     category: "group",
-    description: "Download group profile picture",
+    description: "Baixar a foto de perfil do grupo.",
   },
   async (from, Malvin, conText) => {
     const { mek, reply, react, isGroup, newsletterJid, botName, botFooter } =
@@ -521,16 +505,7 @@ mxd(
         from,
         {
           image: { url: profilePictureUrl },
-          caption: `🖼️ *${fancy("Group Profile Picture", "mono")}*\n\n${botFooter ? `_${botFooter}_` : ""}`,
-          contextInfo: {
-            forwardingScore: 5,
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-              newsletterJid: newsletterJid,
-              newsletterName: botName,
-              serverMessageId: 143,
-            },
-          },
+          caption: `🖼️ *${fancy("Foto de perfil do grupo", "mono")}*\n\n${botFooter ? `_${botFooter}_` : ""}`,
         },
         { quoted: mrxd },
       );

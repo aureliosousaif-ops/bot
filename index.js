@@ -150,7 +150,7 @@ let Malvin;
 let store;
 logger.level = "silent";
 app.use(express.static("king"));
-app.get("/", (cleanVar0094, cleanVar0181) => cleanVar0181.sendFile(__dirname + "/malvin/malvin.html"));
+app.get("/", (cleanVar0094, cleanVar0181) => cleanVar0181.status(200).send("Sousinha Bot está online."));
 app.get("/health", (cleanVar0225, cleanVar0185) => cleanVar0185.status(200).json({
   status: "alive",
   uptime: process.uptime()
