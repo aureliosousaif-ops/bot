@@ -109,6 +109,7 @@ const path = require("path");
 const axios = require("axios");
 const express = require("express");
 const crypto = require("crypto");
+const qrcode = require("qrcode");
 const dns = require("dns").promises;
 const https = require("https");
 
@@ -235,11 +236,22 @@ app.get("/qr", (req, res) => {
   if (!config.PAIRING_HTTP_TOKEN) return res.status(404).send("QR HTTP desativado.");
   res.type("html").send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>QR Code do Sousinha Bot</title><style>body{font-family:system-ui;max-width:420px;margin:48px auto;padding:20px;background:#111;color:#eee}input,button{box-sizing:border-box;width:100%;padding:13px;margin-top:10px;border-radius:8px;border:1px solid #555;background:#222;color:#fff}button{background:#25d366;border:0;color:#111;font-weight:700}</style><h1>QR Code do Sousinha Bot</h1><p>O endpoint retorna o payload atual para uma interface QR compatível.</p><form method="post" action="/qr"><input name="token" type="password" autocomplete="off" required placeholder="Token de acesso"><button>Consultar QR atual</button></form>`);
 });
-app.post("/qr", (req, res) => {
+app.post("/qr", async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!pairingTokenIsValid(req.body?.token)) return res.status(401).json({ error: "Token inválido." });
   if (!qrState.value || Date.now() >= qrState.expiresAt) return res.status(410).json({ error: "QR indisponível ou expirado." });
-  return res.status(200).json({ status: "ready", qr: qrState.value, generatedAt: qrState.generatedAt, expiresAt: qrState.expiresAt });
+  try {
+    const imageDataUrl = await qrcode.toDataURL(qrState.value, {
+      errorCorrectionLevel: "M",
+      margin: 2,
+      width: 360
+    });
+    const secondsLeft = Math.max(0, Math.ceil((qrState.expiresAt - Date.now()) / 1000));
+    return res.type("html").send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>QR Code do Sousinha Bot</title><style>body{font-family:system-ui;text-align:center;margin:32px auto;padding:20px;background:#111;color:#eee}img{display:block;width:360px;max-width:100%;height:auto;margin:20px auto;background:#fff;padding:12px;border-radius:12px}code{word-break:break-all;color:#aaa;font-size:.75rem}</style><h1>QR Code do Sousinha Bot</h1><p>Escaneie este QR no WhatsApp em Aparelhos conectados.</p><img src="${imageDataUrl}" alt="QR Code para conectar o Sousinha Bot"><p>Este QR expira em aproximadamente ${secondsLeft}s.</p><p>Se expirar, atualize e consulte novamente com o token.</p>`);
+  } catch (error) {
+    console.error("[QR] Falha ao renderizar QR:", safeErrorText(error));
+    return res.status(500).json({ error: "Não foi possível renderizar o QR Code atual." });
+  }
 });
 app.listen(PORT, () => console.log("✅ Server Running on Port: " + PORT));
 setInterval(() => {
