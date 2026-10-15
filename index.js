@@ -111,6 +111,44 @@ const path = require("path");
 const axios = require("axios");
 const express = require("express");
 const crypto = require("crypto");
+const dns = require("dns").promises;
+const https = require("https");
+
+const DEBUG_WHATSAPP = process.env.DEBUG_WHATSAPP === "true";
+const safeErrorText = (error) => String(error?.message || error || "erro desconhecido").replace(/(token|session|authorization|cookie|password|secret)\s*[:=]\s*[^\s,;]+/gi, "$1=[oculto]");
+async function diagnoseWhatsAppNetwork() {
+  if (!DEBUG_WHATSAPP) return;
+  const host = "web.whatsapp.com";
+  try {
+    const addresses = await Promise.race([
+      dns.lookup(host, { all: true }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout DNS 8s")), 8000))
+    ]);
+    console.log("[WA-DIAG] DNS OK: " + addresses.map((item) => item.address).join(","));
+  } catch (error) {
+    console.error("[WA-DIAG] DNS FALHOU: " + safeErrorText(error));
+    return;
+  }
+  await new Promise((resolve) => {
+    const request = https.request({ hostname: host, port: 443, method: "HEAD", path: "/", timeout: 8000 }, (response) => {
+      console.log("[WA-DIAG] TLS/HTTPS OK: status=" + response.statusCode);
+      response.resume();
+      resolve();
+    });
+    request.on("timeout", () => request.destroy(new Error("timeout TLS 8s")));
+    request.on("error", (error) => {
+      console.error("[WA-DIAG] TLS/HTTPS FALHOU: " + safeErrorText(error));
+      resolve();
+    });
+    request.end();
+  });
+}
+
+if (!global.__sousinhaWhatsAppDiagnostics) {
+  process.on("unhandledRejection", (reason) => console.error("[WA-DIAG] Promise rejeitada: " + safeErrorText(reason)));
+  process.on("uncaughtException", (error) => console.error("[WA-DIAG] Exceção não capturada: " + safeErrorText(error)));
+  global.__sousinhaWhatsAppDiagnostics = true;
+}
 async function resolveRealJid(cleanVar0031, cleanVar0117) {
   if (!cleanVar0117) {
     return null;
@@ -232,6 +270,7 @@ async function startMalvin() {
     }
     if (!Array.isArray(cleanVar0034)) throw new Error("Versão do WhatsApp Web indisponível");
     console.log("✅ Versão do WhatsApp obtida.");
+    await diagnoseWhatsAppNetwork();
     const cleanVar0082 = path.join(sessionDir, "session.db");
     console.log("🔄 Abrindo autenticação local...");
     const {
@@ -256,12 +295,34 @@ async function startMalvin() {
     console.log("🔄 Criando conexão com o WhatsApp...");
     Malvin = malvinConnect(cleanVar0167);
     console.log("✅ Socket do WhatsApp criado; aguardando QR ou conexão...");
+    let connectionState = "created";
+    const socketWatchdog = setTimeout(() => {
+      if (connectionState !== "open") {
+        console.error("[WA-DIAG] Sem avanço do socket após 20s: estado=" + connectionState + ". Possível falha de DNS, TLS, WebSocket ou versão incompatível.");
+      }
+    }, 20000);
     Malvin.ev.on("connection.update", update => {
+      if (update?.connection) connectionState = update.connection;
+      if (DEBUG_WHATSAPP) {
+        const details = {
+          connection: update?.connection || null,
+          hasQr: Boolean(update?.qr),
+          isNewLogin: Boolean(update?.isNewLogin),
+          receivedPendingNotifications: Boolean(update?.receivedPendingNotifications),
+          hasDisconnectError: Boolean(update?.lastDisconnect?.error)
+        };
+        console.log("[WA-DIAG] connection.update=" + JSON.stringify(details));
+        if (update?.lastDisconnect?.error) console.error("[WA-DIAG] desconexão=" + safeErrorText(update.lastDisconnect.error));
+      }
+      if (update?.connection === "open") clearTimeout(socketWatchdog);
       if (update?.qr) {
         console.log("\n📱 QR CODE DISPONÍVEL — escaneie em WhatsApp > Aparelhos conectados:\n");
         qrcodeTerminal.generate(update.qr, { small: false });
         console.log("\nO QR Code expira rapidamente. Aguarde o próximo se necessário.\n");
       }
+    });
+    Malvin.ev.on("creds.update", update => {
+      if (DEBUG_WHATSAPP) console.log("[WA-DIAG] creds.update recebido: campos=" + Object.keys(update || {}).join(","));
     });
     const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || cleanVar0042.creds?.me?.name === "~";
     const pairingNumber = String(config.PAIRING_NUMBER || "").replace(/\D/g, "");
