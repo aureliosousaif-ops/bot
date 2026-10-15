@@ -881,7 +881,7 @@ function setupCommandHandler(cleanVar0141) {
     const cleanVar0175 = findBodyCommand(cleanVar0006);
     if (cleanVar0175 && cleanVar0175.function) {
       if (!cleanVar0130) {
-        await cleanVar0141.sendMessage(cleanVar0109, { text: cleanVar0087.OWNER_NUMBER || "6399215379" }, { quoted: cleanVar0165 });
+        await cleanVar0141.sendMessage(cleanVar0109, { text: cleanVar0087.OWNER_NUMBER || "5563999215379" }, { quoted: cleanVar0165 });
         return;
       }
       if (cleanVar0087.MODE?.toLowerCase() === "private" && !cleanVar0127) {
@@ -941,11 +941,11 @@ function setupCommandHandler(cleanVar0141) {
         return;
       }
       if (!cleanVar0130) {
-        await cleanVar0141.sendMessage(cleanVar0109, { text: cleanVar0087.OWNER_NUMBER || "6399215379" }, { quoted: cleanVar0165 });
+        await cleanVar0141.sendMessage(cleanVar0109, { text: cleanVar0087.OWNER_NUMBER || "5563999215379" }, { quoted: cleanVar0165 });
         return;
       }
-      if (["owner", "origin"].includes(cleanVar0097.category) && String(cleanVar0028 || '').split('@')[0] !== "6399215379") {
-        await cleanVar0141.sendMessage(cleanVar0109, { text: "❌ Comando exclusivo do dono.\nContato oficial: " + (cleanVar0087.OWNER_NUMBER || "6399215379") }, { quoted: cleanVar0165 });
+      if (["owner", "origin"].includes(cleanVar0097.category) && String(cleanVar0028 || '').split('@')[0] !== "5563999215379") {
+        await cleanVar0141.sendMessage(cleanVar0109, { text: "❌ Comando exclusivo do dono.\nContato oficial: " + (cleanVar0087.OWNER_NUMBER || "5563999215379") }, { quoted: cleanVar0165 });
         return;
       }
       const rentalControlCommands = ["ativarbot", "desativarbot", "alugar", "statusaluguel", "listaalugueis", "aluguéis", "alugueis", "gruposativos", "gruposalugados", "gruposcomaluguel", "alugueisativos", "aluguelativo", "renovaraluguel", "estenderaluguel", "renovargrupo", "estendergrupo", "ativargrupo", "desativargrupo", "botativar", "botdesativar", "cadastraraluguel", "aluguels", "statusgrupo"];
@@ -956,7 +956,7 @@ function setupCommandHandler(cleanVar0141) {
         const now = Date.now();
         const rentalIsValid = rentalStart && rentalEnd && now >= new Date(rentalStart).getTime() && now <= new Date(rentalEnd).getTime();
         if (rentalEnabled !== "true" || !rentalIsValid) {
-          await cleanVar0141.sendMessage(cleanVar0109, { text: "⏸️ Sousinha Bot está desativado neste grupo ou o aluguel venceu.\n\nO dono deve cadastrar o período e usar .ativarbot.\nDono: " + (cleanVar0087.OWNER_NUMBER || "6399215379") }, { quoted: cleanVar0165 });
+          await cleanVar0141.sendMessage(cleanVar0109, { text: "⏸️ Sousinha Bot está desativado neste grupo ou o aluguel venceu.\n\nO dono deve cadastrar o período e usar .ativarbot.\nDono: " + (cleanVar0087.OWNER_NUMBER || "5563999215379") }, { quoted: cleanVar0165 });
           return;
         }
       }

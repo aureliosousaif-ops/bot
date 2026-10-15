@@ -3,7 +3,7 @@
 const { mxd } = require('../king');
 const { getGroupSetting, setGroupSetting, getAllGroupSettings, getConfiguredGroupJids } = require('../king/database/groupConfig');
 
-const OWNER_NUMBER = '6399215379';
+const OWNER_NUMBER = '5563999215379';
 const CONTROL_COMMANDS = new Set(['ativarbot', 'desativarbot', 'alugar', 'statusaluguel']);
 let rentalMonitorStarted = false;
 

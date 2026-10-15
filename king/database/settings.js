@@ -36,7 +36,7 @@ const SettingsDB = DATABASE.define("BotSettings", _0x21bf31, {
 const DEFAULT_SETTINGS = {
   PREFIX: ".",
   OWNER_NAME: config.OWNER_NAME || "Administrador",
-  OWNER_NUMBER: config.OWNER_NUMBER || "6399215379",
+  OWNER_NUMBER: config.OWNER_NUMBER || "5563999215379",
   BOT_NAME: "Sousinha Bot",
   FOOTER: "Menu de comandos",
   CAPTION: "Bot WhatsApp",
