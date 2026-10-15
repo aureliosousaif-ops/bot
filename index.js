@@ -236,7 +236,9 @@ async function startMalvin() {
         console.log("\nO QR Code expira rapidamente. Aguarde o próximo se necessário.\n");
       }
     });
-    if (config.USE_PAIRING_CODE && config.PAIRING_NUMBER && !cleanVar0042.creds?.me?.id && typeof Malvin.requestPairingCode === "function") {
+    const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || cleanVar0042.creds?.me?.name === "~";
+    const shouldRequestPairingCode = config.USE_PAIRING_CODE && config.PAIRING_NUMBER && (pairingSessionIncomplete || config.FORCE_PAIRING_CODE);
+    if (shouldRequestPairingCode && typeof Malvin.requestPairingCode === "function") {
       const pairingNumber = String(config.PAIRING_NUMBER).replace(/\D/g, "");
       setTimeout(async () => {
         try {
