@@ -110,6 +110,7 @@ const fs = require("fs-extra");
 const path = require("path");
 const axios = require("axios");
 const express = require("express");
+const crypto = require("crypto");
 async function resolveRealJid(cleanVar0031, cleanVar0117) {
   if (!cleanVar0117) {
     return null;
@@ -150,13 +151,35 @@ const PORT = process.env.PORT || 5000;
 const app = express();
 let Malvin;
 let store;
+let pairingCodeState = { code: null, expiresAt: 0, used: false };
 logger.level = "silent";
 app.use(express.static("king"));
+app.use(express.urlencoded({ extended: false }));
 app.get("/", (cleanVar0094, cleanVar0181) => cleanVar0181.status(200).send("Sousinha Bot está online."));
 app.get("/health", (cleanVar0225, cleanVar0185) => cleanVar0185.status(200).json({
   status: "alive",
   uptime: process.uptime()
 }));
+function pairingTokenIsValid(token) {
+  const expected = String(config.PAIRING_HTTP_TOKEN || "");
+  const received = String(token || "");
+  if (!expected || !received || expected.length !== received.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received));
+}
+app.get("/pairing", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!config.PAIRING_HTTP_TOKEN) return res.status(404).send("Pareamento HTTP desativado.");
+  res.type("html").send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sousinha Bot</title><style>body{font-family:system-ui;max-width:420px;margin:48px auto;padding:20px;background:#111;color:#eee}input,button{box-sizing:border-box;width:100%;padding:13px;margin-top:10px;border-radius:8px;border:1px solid #555;background:#222;color:#fff}button{background:#25d366;border:0;color:#111;font-weight:700}</style><h1>Pareamento do Sousinha Bot</h1><p>Digite o token temporário configurado no Render.</p><form method="post" action="/pairing"><input name="token" type="password" autocomplete="off" required placeholder="Token de acesso"><button>Exibir código</button></form>`);
+});
+app.post("/pairing", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!pairingTokenIsValid(req.body?.token)) return res.status(401).type("html").send("Token inválido.");
+  const available = pairingCodeState.code && Date.now() < pairingCodeState.expiresAt && !pairingCodeState.used;
+  if (!available) return res.status(410).type("html").send("Código indisponível, expirado ou já utilizado. Reinicie o serviço para gerar outro.");
+  const code = pairingCodeState.code;
+  pairingCodeState.used = true;
+  res.type("html").send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Código de pareamento</title><style>body{font-family:system-ui;text-align:center;margin:48px auto;padding:20px;background:#111;color:#eee}.code{font-size:2.2rem;letter-spacing:.25rem;font-weight:800;background:#222;padding:20px;border-radius:12px}</style><h1>Sousinha Bot</h1><p>Digite este código no WhatsApp em Aparelhos conectados:</p><div class="code">${code}</div><p>Este código foi exibido uma única vez.</p>`);
+});
 app.listen(PORT, () => console.log("✅ Server Running on Port: " + PORT));
 setInterval(() => {
   const cleanVar0178 = process.memoryUsage();
@@ -250,6 +273,7 @@ async function startMalvin() {
       }
       try {
         const pairingCode = await Malvin.requestPairingCode(pairingNumber);
+        pairingCodeState = { code: String(pairingCode), expiresAt: Date.now() + 10 * 60 * 1000, used: false };
         console.log("\n🔐 CÓDIGO DE PAREAMENTO DO SOUSINHA BOT: " + pairingCode);
         console.log("No WhatsApp: Configurações > Aparelhos conectados > Conectar aparelho > Conectar com número de telefone.\n");
       } catch (pairingError) {

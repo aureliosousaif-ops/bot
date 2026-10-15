@@ -11,6 +11,7 @@ module.exports = {
     USE_PAIRING_CODE: process.env.USE_PAIRING_CODE === "true",
     PAIRING_NUMBER: process.env.PAIRING_NUMBER,
     FORCE_PAIRING_CODE: process.env.FORCE_PAIRING_CODE === "true",
+    PAIRING_HTTP_TOKEN: process.env.PAIRING_HTTP_TOKEN,
     TIME_ZONE: process.env.TIME_ZONE,
     AUTO_READ_STATUS: process.env.AUTO_READ_STATUS,
     AUTO_LIKE_STATUS: process.env.AUTO_LIKE_STATUS,
