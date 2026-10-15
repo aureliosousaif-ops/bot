@@ -329,9 +329,13 @@ async function startMalvin() {
       }
       if (update?.connection === "open") clearTimeout(socketWatchdog);
       if (update?.qr) {
-        console.log("\n📱 QR CODE DISPONÍVEL — escaneie em WhatsApp > Aparelhos conectados:\n");
-        qrcodeTerminal.generate(update.qr, { small: false });
-        console.log("\nO QR Code expira rapidamente. Aguarde o próximo se necessário.\n");
+        if (config.USE_PAIRING_CODE) {
+          console.log("[PAIRING] QR recebido pelo protocolo; exibição ignorada porque o modo por número está ativo.");
+        } else {
+          console.log("\n📱 QR CODE DISPONÍVEL — escaneie em WhatsApp > Aparelhos conectados:\n");
+          qrcodeTerminal.generate(update.qr, { small: false });
+          console.log("\nO QR Code expira rapidamente. Aguarde o próximo se necessário.\n");
+        }
       }
     });
     Malvin.ev.on("creds.update", update => {
@@ -352,6 +356,17 @@ async function startMalvin() {
         return;
       }
       try {
+        if (typeof Malvin.waitForSocketOpen === "function") {
+          await Promise.race([
+            Malvin.waitForSocketOpen(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("tempo limite de 10 segundos aguardando WebSocket aberto")), 10000))
+          ]);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          console.log("🔗 Transporte WebSocket aberto; solicitando código após o handshake.");
+        } else {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          console.warn("⚠️ waitForSocketOpen não está disponível; usando atraso de segurança.");
+        }
         const pairingCode = await Promise.race([
           Malvin.requestPairingCode(pairingNumber),
           new Promise((_, reject) => setTimeout(() => reject(new Error("tempo limite de 15 segundos aguardando resposta do WhatsApp")), 15000))
@@ -367,7 +382,7 @@ async function startMalvin() {
     };
     Malvin.ev.on("connection.update", update => {
       if (update?.connection === "connecting" && shouldRequestPairingCode) {
-        console.log("🔗 WebSocket pronto para solicitar pareamento; aguardando 500ms...");
+        console.log("🔗 Evento inicial de conexão recebido; aguardando o transporte WebSocket real...");
         setTimeout(requestPairingCode, 500);
       }
       if (update?.connection === "close" && update.lastDisconnect?.error) {

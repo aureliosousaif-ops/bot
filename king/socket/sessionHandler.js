@@ -64,7 +64,7 @@ const setupConnectionHandler = (
     Malvin.ev.on("connection.update", async (update) => {
         const { connection, lastDisconnect, qr } = update;
 
-        if (qr) {
+        if (qr && process.env.USE_PAIRING_CODE !== "true") {
             console.log("\n📱 Escaneie este QR Code no WhatsApp > Aparelhos conectados:\n");
             qrcode.generate(qr, { small: true });
             console.log("\nO QR Code expira rapidamente; se necessário, aguarde o próximo.\n");
