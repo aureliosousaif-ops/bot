@@ -804,7 +804,7 @@ const {
 } = require("child_process");
 function runFFmpeg(_0x548e9d, _0xfd1ab7, _0x30ae0a = 320, _0x3f2e14 = 15, _0x5efcab = 8) {
   return new Promise((_0xbf9d9b, _0xbccfb9) => {
-    const _0x3a7dd8 = "ffmpeg -i \"" + _0x548e9d + "\" -vf \"scale=" + _0x30ae0a + ":-1:force_original_aspect_ratio=decrease,fps=" + _0x3f2e14 + "\" -t " + _0x5efcab + " -an -vcodec libwebp -loop 0 -preset default -vsync 0 \"" + _0xfd1ab7 + "\" -y";
+    const _0x3a7dd8 = "\"" + ffmpegPath + "\" -i \"" + _0x548e9d + "\" -vf \"scale=" + _0x30ae0a + ":-1:force_original_aspect_ratio=decrease,fps=" + _0x3f2e14 + "\" -t " + _0x5efcab + " -an -vcodec libwebp -loop 0 -preset default -vsync 0 \"" + _0xfd1ab7 + "\" -y";
     exec(_0x3a7dd8, _0x5aa72a => {
       if (_0x5aa72a) {
         _0xbccfb9(_0x5aa72a);

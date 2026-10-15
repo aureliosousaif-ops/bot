@@ -300,6 +300,7 @@ const GlobalPlayerSchema = new mongoose.Schema(
         // Economy
         job:            { type: String, default: null          },
         bounty:         { type: Number, default: 0             },
+        goldEconomy:    { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
         taxRate:        { type: Number, default: 0.05          },
         stocks:         { type: StocksSchema, default: () => ({}) },
 

@@ -761,7 +761,7 @@ mxd(
         aliases:     ['dailyreward', 'claim'],
         category:    'progression',
         react:       '🎁',
-        description: 'Claim your daily EXP and gold reward',
+        description: 'Receber bônus diário acumulativo de EXP e Gold',
         filename:    __filename,
     },
     async (from, Malvin, conText) => {
@@ -772,38 +772,55 @@ mxd(
 
         const lastDaily = player.cooldowns?.daily;
         const cooldownMs = 24 * 60 * 60 * 1000;
+        const now = new Date();
 
         if (lastDaily && Date.now() - new Date(lastDaily).getTime() < cooldownMs) {
             const remaining = cooldownMs - (Date.now() - new Date(lastDaily).getTime());
             const hrs = Math.floor(remaining / 3600000);
             const mins = Math.floor((remaining % 3600000) / 60000);
             return reply(
-                buildBox('🎁 DAILY COOLDOWN', [
-                    `  Already claimed today!`,
-                    `  Come back in: ${hrs}h ${mins}m`,
+                buildBox('🎁 AGUARDE O BÔNUS DIÁRIO', [
+                    `  Você já recebeu o bônus de hoje.`,
+                    `  Tente novamente em: ${hrs}h ${mins}m`,
                 ])
             );
         }
 
+        // Sequência acumulativa: cada dia consecutivo acrescenta 100 Gold,
+        // limitada a 7 dias para evitar inflação descontrolada.
+        const ultimoDia = lastDaily ? Math.floor(new Date(lastDaily).getTime() / cooldownMs) : 0;
+        const diaAtual = Math.floor(now.getTime() / cooldownMs);
+        const diasEntre = ultimoDia ? diaAtual - ultimoDia : 0;
+        const sequencia = diasEntre === 1 ? (player.dailyStreak || 0) + 1 : 1;
+        const bonusSequencia = Math.min(sequencia - 1, 6) * 100;
         const { exp: baseExp, gold: baseGold } = await scaleRewards(
-            { exp: 200, gold: 500 }, player.level, player.jid
+            { exp: 200, gold: 500 + bonusSequencia }, player.level, player.jid
         );
         const diamonds = player.level >= 50 ? 2 : 0;
 
         await grantExp(sender, baseExp, baseGold, botId);
         if (diamonds) await addDiamonds(sender, diamonds);
-        await GlobalPlayer.updateOne({ jid: sender }, { $set: { 'cooldowns.daily': new Date() } });
+        await GlobalPlayer.updateOne({ jid: sender }, {
+            $set: {
+                'cooldowns.daily': now,
+                dailyStreak: sequencia,
+                'goldEconomy.dailyStreak': sequencia,
+                'goldEconomy.lastDailyClaim': now.toISOString(),
+            },
+        });
 
         await react('🎁');
         await reply(
-            buildBox('🎁 DAILY REWARD CLAIMED', [
-                `  Hunter: ${player.username || pushName}`,
+            buildBox('🎁 BÔNUS DIÁRIO RECEBIDO', [
+                `  Usuário: ${player.username || pushName}`,
                 `  ─────────────────────`,
                 `  ✨ EXP:      +${baseExp.toLocaleString()}`,
                 `  💰 Gold:     +${baseGold.toLocaleString()}`,
-                ...(diamonds ? [`  💎 Diamonds: +${diamonds}`] : []),
+                `  🔥 Sequência: ${sequencia} dia(s)`,
+                ...(bonusSequencia ? [`  🎁 Bônus acumulado: +${bonusSequencia} Gold`] : []),
+                ...(diamonds ? [`  💎 Diamantes: +${diamonds}`] : []),
                 `  ─────────────────────`,
-                `  Come back tomorrow for more!`,
+                `  Volte amanhã para manter sua sequência!`,
                 buildFooter(baseExp, baseGold, player),
             ])
         );

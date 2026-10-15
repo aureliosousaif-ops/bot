@@ -1,5 +1,15 @@
-﻿let commands = [];
+let commands = [];
 const tabCmds = [];
+// Variantes legadas que duplicavam os baixadores principais. Mantemos os
+// comandos estáveis (yt, tiktok, twitter, snack) e evitamos poluir o menu.
+const DISABLED_COMMANDS = new Set([
+  "tiktok2",
+  "tiktok5",
+  "tiktok7",
+  "tiktokv2",
+  "twitter2",
+  "snackvideo2"
+]);
 const evt = {
   events: {},
   on(cleanVar0005, cleanVar0003) {
@@ -16,6 +26,9 @@ const evt = {
 };
 function mxd(cleanVar0002, cleanVar0004) {
   let cleanVar0008 = cleanVar0002;
+  if (DISABLED_COMMANDS.has(String(cleanVar0002?.pattern || "").toLowerCase())) {
+    return cleanVar0008;
+  }
   if (!cleanVar0002.category) {
     cleanVar0008.category = "general";
   }

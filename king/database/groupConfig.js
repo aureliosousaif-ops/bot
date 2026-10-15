@@ -45,6 +45,9 @@ const GROUP_SETTING_DEFAULTS = {
     ANTIPROMOTE: "false",
     ANTIDEMOTE: "false",
     ECONOMY_MODE: "false",
+    BOT_ENABLED: "false",
+    RENT_START: "",
+    RENT_END: "",
     LANGUAGE: "", // empty = no group override, falls back to global default (en)
     ANTINSFW: "false", // "false" | "delete" | "warn" | "kick"
     ANTINSFW_WARN_COUNT: "3",
@@ -449,6 +452,14 @@ async function getGroupsWithSettingEnabled(key) {
     return records.map((record) => record.groupJid);
 }
 
+async function getConfiguredGroupJids() {
+    const records = await GroupSettingsDB.findAll({
+        attributes: ['groupJid'],
+        group: ['groupJid'],
+    });
+    return records.map((record) => record.groupJid);
+}
+
 async function getEnabledGroupSettings() {
     const result = {
         WELCOME_MESSAGE: [],
@@ -501,6 +512,7 @@ module.exports = {
     getAllGroupSettings,
     resetGroupSetting,
     getGroupsWithSettingEnabled,
+    getConfiguredGroupJids,
     getEnabledGroupSettings,
     getAntilinkWarnings,
     addAntilinkWarning,

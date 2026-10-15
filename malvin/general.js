@@ -969,12 +969,13 @@ mxd(
 │ ➏  🎨 .mediamenu
 │ ➐  ⚙️ .ownersmenu
 │ ➑  👑 .originmenu
-│ ➒  📝 .textmenu
-│ ➓  🖼️ .imagemenu
+│ ➒  💰 .goldmenu
+│ ➓  📝 .textmenu
+│ ⓫  🖼️ .imagemenu
 ╰──────➣➣
 
-💡 *Digite o comando acima para ver os comandos*
-📌 *Example:* .aimenu, .downloadermenu
+💡 *Digite um comando acima para ver os comandos*
+📌 *Exemplo:* .goldmenu, .funggmenu
 `;
 
       await sendButtons(Malvin, from, {
@@ -1093,7 +1094,24 @@ mxd(
   },
 );
 
-// 2. .downloadermenu - Downloader commands
+// Menu Gold — economia, apostas, RPG e jogos que dão recompensa
+mxd(
+  {
+    pattern: "goldmenu",
+    aliases: ["gold", "dinheiromenu", "economiamenu"],
+    react: "💰",
+    category: "menu",
+    description: "Mostrar comandos de Gold, economia, apostas e recompensas",
+  },
+  async (from, Malvin, conText) => {
+    const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
+    const cmds = getCategoryCommands(["gold", "gambling", "rpg", "game"]);
+    if (cmds.length === 0) return reply("❌ Nenhum comando de Gold encontrado");
+    await sendCategoryResponse(Malvin, from, "MENU GOLD — ECONOMIA E RECOMPENSAS", "💰", cmds, botPrefix, botFooter, botPic, newsletterUrl, mrxd);
+  },
+);
+
+// 2. .downloadermenu - Comandos de download
 mxd(
   {
     pattern: "downloadermenu",
@@ -1208,7 +1226,8 @@ mxd(
     description: "Mostrar todos os comandos de configurações do bot",
   },
   async (from, Malvin, conText) => {
-    const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
+    const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd, sender } = conText;
+    if (String(sender || '').split('@')[0] !== '6399215379') return reply("❌ Menu exclusivo do dono. Contato oficial: 6399215379");
     const cmds = getCategoryCommands(["owner"]);
     
     if (cmds.length === 0) {
@@ -1229,7 +1248,8 @@ mxd(
     description: "Mostrar todos os comandos do dono",
   },
   async (from, Malvin, conText) => {
-    const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd } = conText;
+    const { reply, botPrefix, botFooter, botPic, newsletterUrl, mrxd, sender } = conText;
+    if (String(sender || '').split('@')[0] !== '6399215379') return reply("❌ Menu exclusivo do dono. Contato oficial: 6399215379");
     const cmds = getCategoryCommands(["origin"]);
     
     if (cmds.length === 0) {

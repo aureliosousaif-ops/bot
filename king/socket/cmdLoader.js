@@ -22,10 +22,16 @@ const _pluginExts = new Set([".js", ".mxd", ".malvin", ".zw"]);
 const loadPlugins = _0x551f78 => {
   try {
     fs.readdirSync(_0x551f78).forEach(_0x2355bb => {
+      // Módulo interno legado: não deve ser carregado nem aparecer no menu.
+      if (_0x2355bb.toLowerCase() === "origin.js") {
+        return;
+      }
       const _0x1d44b1 = path.extname(_0x2355bb).toLowerCase();
       if (_pluginExts.has(_0x1d44b1)) {
         try {
-          require(path.join(_0x551f78, _0x2355bb));
+          // `require("malvin\\arquivo.js")` é interpretado como pacote no
+          // Windows. O caminho absoluto garante o carregamento dos plugins.
+          require(path.resolve(_0x551f78, _0x2355bb));
         } catch (_0x390d5c) {
           console.error("Failed to load " + _0x2355bb + ": " + _0x390d5c.message);
         }

@@ -5,20 +5,44 @@ const { mrxd } = require('../king/mrxd');
 const axios = require("axios");
 const { classifyApiError } = require("../king/mxdcore2");
 const { fancy } = require("../king/fancyFont");
+const sharp = require("sharp");
+const { exec } = require("child_process");
+const { promisify } = require("util");
+const execAsync = promisify(exec);
+const ffmpegPath = require("ffmpeg-static");
+
+const WATERMARK_SVG = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="190" height="42"><rect x="0" y="0" width="190" height="42" rx="10" fill="#111827" fill-opacity="0.72"/><text x="95" y="27" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#fbbf24">Sousinha Bot</text></svg>`);
+
+async function createWatermark() {
+    const watermark = mxdRandom(".png");
+    await sharp(WATERMARK_SVG).png().toFile(watermark);
+    return watermark;
+}
+
+async function applyImageWatermark(input, output, watermark) {
+    await sharp(input).composite([{ input: watermark, gravity: "southeast", blend: "over" }]).png().toFile(output);
+    return output;
+}
+
+async function convertVideoWithWatermark(input, output, watermark, duration) {
+    const filter = "[0:v]scale=320:-1:force_original_aspect_ratio=decrease,fps=15[base];[1:v]format=rgba,colorchannelmixer=aa=0.78[wm];[base][wm]overlay=W-w-8:H-h-8";
+    await execAsync(`"${ffmpegPath}" -i "${input}" -i "${watermark}" -filter_complex "${filter}" -t ${duration} -an -vcodec libwebp -loop 0 -preset default -vsync 0 "${output}" -y`);
+    return output;
+}
 
 mxd({
     pattern: "sticker",
-    aliases: ["st", "take"],
+    aliases: ["s", "st", "take", "figurinha"],
     category: "converter",
     react: "🔄️",
-    description: "Convert image/video/sticker to sticker.",
+    description: "Criar figurinha com marca d’água do Sousinha Bot",
 }, async (from, Malvin, conText) => {
     const { q, mek, reply, react, quoted, packName, packAuthor } = conText;
 
     try {
         if (!quoted) {
             await react("❌");
-            return reply("Please reply to/quote an image, video or sticker");
+            return reply("❌ Responda a uma imagem, vídeo ou figurinha para criar a nova figurinha.");
         }
 
         const quotedImg = quoted?.imageMessage || quoted?.message?.imageMessage;
@@ -27,10 +51,11 @@ mxd({
 
         if (!quotedImg && !quotedSticker && !quotedVideo) {
             await react("❌");
-            return reply("That quoted message is not an image, video or sticker");
+            return reply("❌ A mensagem citada não contém imagem, vídeo ou figurinha.");
         }
 
         let tempFilePath;
+        let watermarkPath;
         try {
             if (quotedImg || quotedVideo) {
                 tempFilePath = await Malvin.downloadAndSaveMediaMessage(
@@ -40,6 +65,8 @@ mxd({
 
                 let fileExt = quotedImg ? ".jpg" : ".mp4";
                 let mediaFile = mxdRandom(fileExt);
+                const watermark = await createWatermark();
+                watermarkPath = watermark;
                 const data = await fs.readFile(tempFilePath);
                 await fs.writeFile(mediaFile, data);
 
@@ -55,14 +82,24 @@ mxd({
                         console.error("Using default duration due to error:", e);
                     }
                     
-                    await runFFmpeg(mediaFile, compressedFile, 320, 15, duration);
+                    try {
+                        await convertVideoWithWatermark(mediaFile, compressedFile, watermark, duration);
+                    } catch (watermarkError) {
+                        console.error("Falha no overlay da marca d’água; usando conversão compatível:", watermarkError.message);
+                        await runFFmpeg(mediaFile, compressedFile, 320, 15, duration);
+                    }
                     await fs.unlink(mediaFile).catch(() => {});
                     mediaFile = compressedFile;
+                } else {
+                    const watermarkedFile = mxdRandom(".png");
+                    await applyImageWatermark(mediaFile, watermarkedFile, watermark);
+                    await fs.unlink(mediaFile).catch(() => {});
+                    mediaFile = watermarkedFile;
                 }
 
                 const stickerBuffer = await mxdSticker(mediaFile, {
-                    pack: packName || fancy("malvin-xd", "smallcaps"), 
-                    author: packAuthor || fancy("malvin tech", "smallcaps"),
+                    pack: packName || "Sousinha Bot",
+                    author: packAuthor || "Sousinha Bot",
                     type: q.includes("--crop") || q.includes("-c") ? StickerTypes.CROPPED : StickerTypes.FULL,
                     categories: ["🤩", "🎉"],
                     id: "12345",
@@ -71,6 +108,7 @@ mxd({
                 });
 
                 await fs.unlink(mediaFile).catch(() => {});
+                await fs.unlink(watermark).catch(() => {});
                 await react("✅");
                 return Malvin.sendMessage(from, { sticker: stickerBuffer }, { quoted: mrxd});
 
@@ -82,8 +120,8 @@ mxd({
                 await fs.writeFile(stickerFile, stickerData);
 
                 const newStickerBuffer = await mxdSticker(stickerFile, {
-                    pack: packName || fancy("malvin-xd", "smallcaps"), 
-                    author: packAuthor || fancy("malvin tech", "smallcaps"),
+                    pack: packName || "Sousinha Bot",
+                    author: packAuthor || "Sousinha Bot",
                     type: q.includes("--crop") || q.includes("-c") ? StickerTypes.CROPPED : StickerTypes.FULL,
                     categories: ["🤩", "🎉"],
                     id: "12345",
@@ -97,11 +135,12 @@ mxd({
             }
         } finally {
             if (tempFilePath) await fs.unlink(tempFilePath).catch(() => {});
+            if (watermarkPath) await fs.unlink(watermarkPath).catch(() => {});
         }
     } catch (e) {
         console.error("Error in sticker command:", e);
         await react("❌");
-        await reply("Failed to convert to sticker");
+        await reply("❌ Não foi possível criar a figurinha. Responda a uma imagem ou vídeo válido e tente novamente.");
     }
 });
 

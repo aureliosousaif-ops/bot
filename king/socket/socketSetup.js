@@ -9,6 +9,7 @@ const createSocketConfig = (version, state, logger) => {
     return {
         version,
         logger: pino({ level: 'silent' }),
+        // Perfil oficial recomendado pelo Baileys para Ubuntu/Chrome.
         browser: ['Ubuntu', 'Chrome', '22.04.4'],
         auth: {
             creds: state.creds,

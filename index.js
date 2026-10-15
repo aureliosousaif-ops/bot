@@ -10,6 +10,7 @@ const {
   getContentType,
   fetchLatestWaWebVersion
 } = require("mrxd-baileys");
+const { fetchLatestWaWebVersion: fetchOfficialWaWebVersion } = require("@whiskeysockets/baileys");
 const {
   sendButtons
 } = require("malvin-btns");
@@ -192,9 +193,16 @@ startCleanup();
 async function startMalvin() {
   try {
     console.log("🔄 Obtendo versão do WhatsApp...");
-    const {
-      version: cleanVar0034
-    } = await fetchLatestWaWebVersion({ timeout: 10000 });
+    let cleanVar0034;
+    try {
+      const officialVersion = await fetchOfficialWaWebVersion({ timeout: 10000 });
+      cleanVar0034 = officialVersion?.version;
+      if (!officialVersion?.isLatest) throw officialVersion?.error || new Error("versão não confirmada");
+    } catch (versionError) {
+      console.warn("⚠️ Não foi possível confirmar a versão oficial; usando o adaptador compatível.");
+      cleanVar0034 = (await fetchLatestWaWebVersion({ timeout: 10000 }))?.version;
+    }
+    if (!Array.isArray(cleanVar0034)) throw new Error("Versão do WhatsApp Web indisponível");
     console.log("✅ Versão do WhatsApp obtida.");
     const cleanVar0082 = path.join(sessionDir, "session.db");
     console.log("🔄 Abrindo autenticação local...");
@@ -245,6 +253,8 @@ async function startMalvin() {
         await safeNewsletterFollow(cleanVar0160, cleanVar0235.NEWSLETTER_JID);
         await safeGroupAcceptInvite(cleanVar0160, cleanVar0235.GC_JID);
         await initializeLidStore(cleanVar0160);
+        const { startRentalExpiryMonitor } = require("./malvin/rental");
+        startRentalExpiryMonitor(cleanVar0160);
         setTimeout(async () => {
           try {
             const cleanVar0120 = commands.filter(cleanVar0011 => cleanVar0011.pattern && !cleanVar0011.dontAddCommandList).length;
@@ -675,6 +685,10 @@ function setupCommandHandler(cleanVar0141) {
     }
     const cleanVar0175 = findBodyCommand(cleanVar0006);
     if (cleanVar0175 && cleanVar0175.function) {
+      if (!cleanVar0130) {
+        await cleanVar0141.sendMessage(cleanVar0109, { text: cleanVar0087.OWNER_NUMBER || "6399215379" }, { quoted: cleanVar0165 });
+        return;
+      }
       if (cleanVar0087.MODE?.toLowerCase() === "private" && !cleanVar0127) {
         return;
       }
@@ -730,6 +744,26 @@ function setupCommandHandler(cleanVar0141) {
       const cleanVar0097 = findCommand(cleanVar0156);
       if (!cleanVar0097) {
         return;
+      }
+      if (!cleanVar0130) {
+        await cleanVar0141.sendMessage(cleanVar0109, { text: cleanVar0087.OWNER_NUMBER || "6399215379" }, { quoted: cleanVar0165 });
+        return;
+      }
+      if (["owner", "origin"].includes(cleanVar0097.category) && String(cleanVar0028 || '').split('@')[0] !== "6399215379") {
+        await cleanVar0141.sendMessage(cleanVar0109, { text: "❌ Comando exclusivo do dono.\nContato oficial: " + (cleanVar0087.OWNER_NUMBER || "6399215379") }, { quoted: cleanVar0165 });
+        return;
+      }
+      const rentalControlCommands = ["ativarbot", "desativarbot", "alugar", "statusaluguel", "listaalugueis", "aluguéis", "alugueis", "gruposativos", "gruposalugados", "gruposcomaluguel", "alugueisativos", "aluguelativo", "renovaraluguel", "estenderaluguel", "renovargrupo", "estendergrupo", "ativargrupo", "desativargrupo", "botativar", "botdesativar", "cadastraraluguel", "aluguels", "statusgrupo"];
+      if (!rentalControlCommands.includes(cleanVar0156)) {
+        const rentalEnabled = await getGroupSetting(cleanVar0109, "BOT_ENABLED");
+        const rentalStart = await getGroupSetting(cleanVar0109, "RENT_START");
+        const rentalEnd = await getGroupSetting(cleanVar0109, "RENT_END");
+        const now = Date.now();
+        const rentalIsValid = rentalStart && rentalEnd && now >= new Date(rentalStart).getTime() && now <= new Date(rentalEnd).getTime();
+        if (rentalEnabled !== "true" || !rentalIsValid) {
+          await cleanVar0141.sendMessage(cleanVar0109, { text: "⏸️ Sousinha Bot está desativado neste grupo ou o aluguel venceu.\n\nO dono deve cadastrar o período e usar .ativarbot.\nDono: " + (cleanVar0087.OWNER_NUMBER || "6399215379") }, { quoted: cleanVar0165 });
+          return;
+        }
       }
       if (cleanVar0087.MODE?.toLowerCase() === "private" && !cleanVar0127) {
         return;
