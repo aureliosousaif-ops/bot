@@ -1,5 +1,6 @@
 require("events").EventEmitter.defaultMaxListeners = 960;
 require("./king/mxdhelpers");
+const qrcodeTerminal = require("qrcode-terminal");
 const {
   default: malvinConnect,
   isJidGroup,
@@ -228,6 +229,25 @@ async function startMalvin() {
     console.log("🔄 Criando conexão com o WhatsApp...");
     Malvin = malvinConnect(cleanVar0167);
     console.log("✅ Socket do WhatsApp criado; aguardando QR ou conexão...");
+    Malvin.ev.on("connection.update", update => {
+      if (update?.qr) {
+        console.log("\n📱 QR CODE DISPONÍVEL — escaneie em WhatsApp > Aparelhos conectados:\n");
+        qrcodeTerminal.generate(update.qr, { small: false });
+        console.log("\nO QR Code expira rapidamente. Aguarde o próximo se necessário.\n");
+      }
+    });
+    if (config.USE_PAIRING_CODE && config.PAIRING_NUMBER && !cleanVar0042.creds?.me?.id && typeof Malvin.requestPairingCode === "function") {
+      const pairingNumber = String(config.PAIRING_NUMBER).replace(/\D/g, "");
+      setTimeout(async () => {
+        try {
+          const pairingCode = await Malvin.requestPairingCode(pairingNumber);
+          console.log("\n🔐 CÓDIGO DE PAREAMENTO DO SOUSINHA BOT: " + pairingCode);
+          console.log("No WhatsApp: Configurações > Aparelhos conectados > Conectar aparelho > Conectar com número de telefone.\n");
+        } catch (pairingError) {
+          console.error("❌ Não foi possível gerar o código de pareamento:", pairingError.message);
+        }
+      }, 5000);
+    }
     store.bind(Malvin.ev);
     Malvin.ev.process(async cleanVar0190 => {
       if (cleanVar0190["creds.update"]) {

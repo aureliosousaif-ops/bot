@@ -8,7 +8,7 @@ const _userDevicesCache = new NodeCache({ stdTTL: 1800, useClones: false });
 const createSocketConfig = (version, state, logger) => {
     return {
         version,
-        logger: pino({ level: 'silent' }),
+        logger: pino({ level: process.env.DEBUG_WHATSAPP === 'true' ? 'info' : 'silent' }),
         // Perfil oficial recomendado pelo Baileys para Ubuntu/Chrome.
         browser: ['Ubuntu', 'Chrome', '22.04.4'],
         auth: {
@@ -17,10 +17,11 @@ const createSocketConfig = (version, state, logger) => {
         },
         cachedGroupMetadata,
         userDevicesCache: _userDevicesCache,
+        printQRInTerminal: true,
         connectTimeoutMs: 15000,
         defaultQueryTimeoutMs: 20000,
         keepAliveIntervalMs: 20000,
-        fireInitQueries: false,
+        fireInitQueries: true,
         markOnlineOnConnect: true,
         syncFullHistory: false,
         shouldSyncHistoryMessage: () => false,

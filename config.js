@@ -8,6 +8,8 @@ module.exports = {
     OWNER_NUMBER: process.env.OWNER_NUMBER || "6399215379",
     SUDO_NUMBERS: process.env.SUDO_NUMBERS,
     SESSION_ID: process.env.SESSION_ID,
+    USE_PAIRING_CODE: process.env.USE_PAIRING_CODE === "true",
+    PAIRING_NUMBER: process.env.PAIRING_NUMBER,
     TIME_ZONE: process.env.TIME_ZONE,
     AUTO_READ_STATUS: process.env.AUTO_READ_STATUS,
     AUTO_LIKE_STATUS: process.env.AUTO_LIKE_STATUS,
