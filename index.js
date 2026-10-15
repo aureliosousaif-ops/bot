@@ -283,7 +283,11 @@ async function loadBotSettings() {
       logger.warn("Ignoring invalid saved FONT_STYLE \"" + botSettings.FONT_STYLE + "\": " + cleanVar0207.message);
     }
   }
-  await connectRPG();
+  if (config.ENABLE_RPG) {
+    await connectRPG();
+  } else {
+    console.log("[RPG] Sistema RPG desativado; ENABLE_RPG=false.");
+  }
   return botSettings;
 }
 startCleanup();
@@ -1115,8 +1119,12 @@ function setupCommandHandler(cleanVar0141) {
           const cleanVar0050 = {
             quoted: cleanVar0165
           };
+          const commandErrorMessage = String(cleanVar0137?.message || cleanVar0137 || "");
+          const friendlyCommandError = /missing baileys internals/i.test(commandErrorMessage)
+            ? "⚠️ Este recurso usa um formato de mensagem incompatível com a biblioteca atual. Tente novamente; o erro foi registrado para correção."
+            : "🚨 Não foi possível executar o comando: " + commandErrorMessage;
           await cleanVar0141.sendMessage(cleanVar0109, {
-            text: "🚨 Command failed: " + cleanVar0137.message,
+            text: friendlyCommandError,
             ...(await createContext(cleanVar0045, {
               title: "Error",
               body: "Command execution failed"

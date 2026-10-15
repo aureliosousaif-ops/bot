@@ -77,6 +77,9 @@ const DEFAULT_SETTINGS = {
   FONT_STYLE: ""
 };
 let initialized = false;
+let settingsCache = null;
+let settingsCacheAt = 0;
+const SETTINGS_CACHE_MS = 5000;
 const GROUP_ONLY_SETTINGS = ["WELCOME_MESSAGE", "GOODBYE_MESSAGE", "GROUP_EVENTS", "ANTILINK"];
 async function initializeSettings() {
   if (initialized) {
@@ -109,6 +112,8 @@ async function initializeSettings() {
     }
   }
   initialized = true;
+  settingsCache = null;
+  settingsCacheAt = 0;
   console.log("✅ Bot Settings Initialized");
 }
 async function getSetting(_0x350f89) {
@@ -147,18 +152,25 @@ async function setSetting(_0x3bc152, _0x40a875) {
     _0x5b6d0e.value = _0x40a875;
     await _0x5b6d0e.save();
   }
+  settingsCache = null;
+  settingsCacheAt = 0;
   return true;
 }
 async function getAllSettings() {
   if (!initialized) {
     await initializeSettings();
   }
+  if (settingsCache && Date.now() - settingsCacheAt < SETTINGS_CACHE_MS) {
+    return { ...settingsCache };
+  }
   const _0x979909 = await SettingsDB.findAll();
   const _0x24fdaf = {};
   for (const _0x49de8c of _0x979909) {
     _0x24fdaf[_0x49de8c.key] = _0x49de8c.value;
   }
-  return _0x24fdaf;
+  settingsCache = _0x24fdaf;
+  settingsCacheAt = Date.now();
+  return { ..._0x24fdaf };
 }
 async function resetSetting(_0x439fd0) {
   if (!initialized) {

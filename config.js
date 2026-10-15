@@ -17,6 +17,7 @@ module.exports = {
     AUTO_LIKE_STATUS: process.env.AUTO_LIKE_STATUS,
     DATABASE_URL: process.env.DATABASE_URL, // Postress(Get one for free from neon.tech/supabase/render/heroku builtin postgress)...will fallback to path: ./king/database/database.db if not provided
     MALVIN_API_KEY: process.env.MALVIN_API_KEY, // Get your free key at https://api.malvintech.co.zw (sign up, key is on your dashboard)
+    ENABLE_RPG: process.env.ENABLE_RPG === "true",
 };
 
 let fileName = require.resolve(__filename);

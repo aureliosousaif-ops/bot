@@ -406,69 +406,38 @@ mxd(
       │↠📅 ${fancy("data", "smallcaps")}: ${monospace(date)}
       ╰═════════════════⊷
 
-📌 *Selecione uma categoria no botão de categorias*
+📌 *Comandos organizados por categoria abaixo*
 `;
 
+      const organizedMenu = sortedCategories.map(category => {
+        const emoji = categoryEmojis[category.toLowerCase()] || "📁";
+        const title = displayCategory(category).toUpperCase();
+        const lines = categorized[category].map(command => {
+          const prefix = command.isBody ? "" : botPrefix;
+          const original = commands.find(item => item.pattern === command.pattern || getCommandLabel(item.pattern) === command.pattern);
+          return `│ 💗 ${prefix}${command.pattern}\n│    ↳ ${getCommandDescription(original || { pattern: command.pattern })}`;
+        });
+        return `\n╭─── ${emoji} *${title}* ───╮\n${lines.join("\n│\n")}\n╰────────────────────╯`;
+      }).join("\n");
+
+      menuText += organizedMenu + `\n\n💗 *Sousinha Bot — comandos separados e explicados*`;
+
 const sendWithDropdown = async (title, text) => {
-  await sendInteractiveMessage(Malvin, from, {
-    title: title,
-    text: text,
-    footer: "> Menu de comandos",
-    image: { url: botPic },
-    interactiveButtons: [
-      {
-        name: "single_select",
-        buttonParamsJson: JSON.stringify({
-          title: "📂 Ver comandos",
-          sections: sections,
-        }),
-      },
-    ],
-  }, { quoted: mrxd });  // ← ADD THIS
+  await Malvin.sendMessage(from, { text: `${text}\n\n${botFooter}` }, { quoted: mrxd });
+  if (botPic) {
+    try {
+      await Malvin.sendMessage(from, {
+        image: { url: botPic },
+        caption: `💗 ${botName}\nMenu acima com os comandos organizados.`
+      }, { quoted: mrxd });
+    } catch (photoError) {
+      console.warn("[MENU] Foto indisponível; menu textual mantido:", photoError.message);
+    }
+  }
 };
 
       await sendWithDropdown("📋 MENU PRINCIPAL", menuText);
       await react("📋");
-
-      const handleCategorySelect = async (event) => {
-        const messageData = event.messages[0];
-        if (!messageData?.message) return;
-
-        let selectedId = null;
-        
-        if (messageData.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson) {
-          try {
-            const parsed = JSON.parse(messageData.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson);
-            selectedId = parsed?.id;
-          } catch (e) {}
-        }
-
-        if (!selectedId?.startsWith("menu_")) return;
-        if (messageData.key?.remoteJid !== from) return;
-
-        const category = selectedId.replace("menu_", "");
-        const cmds = categorized[category] || [];
-        const emoji = categoryEmojis[category.toLowerCase()] || "📁";
-        
-        let cmdText = `╭══〘〘 *${emoji} ${displayCategory(category).toUpperCase()}* 〙〙═⊷\n`;
-        cmdText += `│  📝 *${cmds.length} comandos*\n`;
-        cmdText += `├────────────⊷\n`;
-        
-        cmds.slice(0, 50).forEach((cmd, idx) => {
-          const prefix = cmd.isBody ? "" : botPrefix;
-          cmdText += `│  ${idx + 1}. \`${prefix}${cmd.pattern}\`\n`;
-        });
-        
-        if (cmds.length > 50) {
-          cmdText += `│\n│  ⚠️ *+${cmds.length - 50} a mais*\n`;
-        }
-        cmdText += `╰═════════════════⊷\n`;
-        cmdText += `\n📌 *Selecione outra categoria no botão Ver comandos*`;
-
-        await sendWithDropdown(`${emoji} ${displayCategory(category).toUpperCase()}`, cmdText);
-      };
-
-      Malvin.ev.on("messages.upsert", handleCategorySelect);
 
     } catch (e) {
       console.error("Menu Error:", e);
