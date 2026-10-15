@@ -1,6 +1,5 @@
 require("events").EventEmitter.defaultMaxListeners = 960;
 require("./king/mxdhelpers");
-const qrcodeTerminal = require("qrcode-terminal");
 const {
   default: malvinConnect,
   isJidGroup,
@@ -119,6 +118,8 @@ const safeDisconnectDetails = (error) => JSON.stringify({
   message: safeErrorText(error),
   statusCode: error?.output?.statusCode ?? error?.statusCode ?? null,
   reason: error?.data?.reason ?? error?.data?.status ?? null,
+  stage: error?.data?.stage ?? null,
+  description: error?.data?.description ?? null,
   dataKeys: error?.data && typeof error.data === "object" ? Object.keys(error.data) : []
 });
 async function diagnoseWhatsAppNetwork() {
@@ -195,6 +196,8 @@ const app = express();
 let Malvin;
 let store;
 let pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null };
+let qrState = { value: null, generatedAt: 0, expiresAt: 0 };
+let socketStartInFlight = false;
 logger.level = "silent";
 app.use(express.static("king"));
 app.use(express.urlencoded({ extended: false }));
@@ -226,6 +229,17 @@ app.post("/pairing", (req, res) => {
   pairingCodeState.used = true;
   pairingCodeState.status = "usado";
   res.type("html").send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Código de pareamento</title><style>body{font-family:system-ui;text-align:center;margin:48px auto;padding:20px;background:#111;color:#eee}.code{font-size:2.2rem;letter-spacing:.25rem;font-weight:800;background:#222;padding:20px;border-radius:12px}</style><h1>Sousinha Bot</h1><p>Digite este código no WhatsApp em Aparelhos conectados:</p><div class="code">${code}</div><p>Este código foi exibido uma única vez.</p>`);
+});
+app.get("/qr", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!config.PAIRING_HTTP_TOKEN) return res.status(404).send("QR HTTP desativado.");
+  res.type("html").send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>QR Code do Sousinha Bot</title><style>body{font-family:system-ui;max-width:420px;margin:48px auto;padding:20px;background:#111;color:#eee}input,button{box-sizing:border-box;width:100%;padding:13px;margin-top:10px;border-radius:8px;border:1px solid #555;background:#222;color:#fff}button{background:#25d366;border:0;color:#111;font-weight:700}</style><h1>QR Code do Sousinha Bot</h1><p>O endpoint retorna o payload atual para uma interface QR compatível.</p><form method="post" action="/qr"><input name="token" type="password" autocomplete="off" required placeholder="Token de acesso"><button>Consultar QR atual</button></form>`);
+});
+app.post("/qr", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!pairingTokenIsValid(req.body?.token)) return res.status(401).json({ error: "Token inválido." });
+  if (!qrState.value || Date.now() >= qrState.expiresAt) return res.status(410).json({ error: "QR indisponível ou expirado." });
+  return res.status(200).json({ status: "ready", qr: qrState.value, generatedAt: qrState.generatedAt, expiresAt: qrState.expiresAt });
 });
 app.listen(PORT, () => console.log("✅ Server Running on Port: " + PORT));
 setInterval(() => {
@@ -262,6 +276,11 @@ async function loadBotSettings() {
 }
 startCleanup();
 async function startMalvin() {
+  if (socketStartInFlight) {
+    console.warn("[WA-DIAG] Inicialização de socket já em andamento; nova tentativa ignorada.");
+    return;
+  }
+  socketStartInFlight = true;
   try {
     console.log("🔄 Obtendo versão do WhatsApp...");
     const cleanVar0034 = (await fetchLatestWaWebVersion({ timeout: 10000 }))?.version;
@@ -322,13 +341,11 @@ async function startMalvin() {
       }
       if (update?.connection === "open") clearTimeout(socketWatchdog);
       if (update?.qr) {
-        if (config.USE_PAIRING_CODE) {
-          console.log("[PAIRING] QR recebido pelo protocolo; exibição ignorada porque o modo por número está ativo.");
-        } else {
-          console.log("\n📱 QR CODE DISPONÍVEL — escaneie em WhatsApp > Aparelhos conectados:\n");
-          qrcodeTerminal.generate(update.qr, { small: false });
-          console.log("\nO QR Code expira rapidamente. Aguarde o próximo se necessário.\n");
-        }
+        const generatedAt = Date.now();
+        qrState = { value: update.qr, generatedAt, expiresAt: generatedAt + 60000 };
+        if (DEBUG_WHATSAPP) console.log("[WA-DIAG] QR atualizado; expira em 60s e está disponível em POST /qr com token.");
+      } else if (update?.connection === "open" || update?.connection === "close") {
+        qrState = { value: null, generatedAt: 0, expiresAt: 0 };
       }
     });
     Malvin.ev.on("creds.update", update => {
@@ -462,9 +479,11 @@ async function startMalvin() {
         }, 5000);
       }
     });
+    socketStartInFlight = false;
     process.on("SIGINT", () => store?.destroy());
     process.on("SIGTERM", () => store?.destroy());
   } catch (cleanVar0084) {
+    socketStartInFlight = false;
     console.error("Socket initialization error:", cleanVar0084);
     setTimeout(() => startMalvin(), 5000);
   }
