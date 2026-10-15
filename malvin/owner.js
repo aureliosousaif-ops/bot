@@ -1119,7 +1119,7 @@ mxd(
         forwardingScore: 1,
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
-          newsletterJid: newsletterJid || "120363402507750390@newsletter",
+          newsletterJid: newsletterJid || "",
           newsletterName: sourceName,
           serverMessageId: -1,
         },

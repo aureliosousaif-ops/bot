@@ -66,8 +66,8 @@ setupConsoleFilters();
 const createContext = async (_0x4f885c, _0x3fea17 = {}) => {
   const _0x51d3e2 = (await getSetting("BOT_NAME")) || fancy("malvin-xd", "smallcaps");
   const _0x23da5a = (await getSetting("BOT_PIC")) || "https://files.catbox.moe/hffiqp.jpg";
-  const _0x1c7efa = (await getSetting("NEWSLETTER_JID")) || "120363402507750390@newsletter";
-  const _0x435b03 = (await getSetting("NEWSLETTER_URL")) || "https://whatsapp.com/channel/0029VbB3YxTDJ6H15SKoBv3S";
+  const _0x1c7efa = (await getSetting("NEWSLETTER_JID")) || "";
+  const _0x435b03 = (await getSetting("NEWSLETTER_URL")) || "https://chat.whatsapp.com/B5AYb0bMR2j5Z6zIw9QgKH";
   const _0x2cba8c = {
     businessOwnerJid: _0x1c7efa
   };
@@ -98,7 +98,7 @@ const createContext = async (_0x4f885c, _0x3fea17 = {}) => {
 const createContext2 = async (_0x3d7e04, _0x29d749 = {}) => {
   const _0x214b40 = (await getSetting("BOT_NAME")) || fancy("malvin-xd", "smallcaps");
   const _0x2eaa00 = (await getSetting("BOT_PIC")) || "https://files.catbox.moe/hffiqp.jpg";
-  const _0x23acc8 = (await getSetting("NEWSLETTER_JID")) || "120363402507750390@newsletter";
+  const _0x23acc8 = (await getSetting("NEWSLETTER_JID")) || "";
   return {
     contextInfo: {
       mentionedJid: [_0x3d7e04],

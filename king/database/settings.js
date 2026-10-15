@@ -67,7 +67,7 @@ const DEFAULT_SETTINGS = {
   YT: "",
   NEWSLETTER_JID: "",
   GC_JID: "",
-  NEWSLETTER_URL: "",
+  NEWSLETTER_URL: "https://chat.whatsapp.com/B5AYb0bMR2j5Z6zIw9QgKH",
   BOT_REPO: "",
   PACK_NAME: "Sousinha Bot",
   PACK_AUTHOR: "Sousinha Bot",
