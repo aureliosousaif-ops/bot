@@ -284,8 +284,9 @@ async function startMalvin() {
       saveCreds: cleanVar0053
     } = await useSQLiteAuthState(cleanVar0082);
     console.log("✅ Autenticação local aberta.");
-    const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || cleanVar0042.creds?.me?.name === "~" || cleanVar0042.creds?.registered === false;
-    if (config.USE_PAIRING_CODE && cleanVar0042.creds?.me?.name === "~") {
+    const pairingMarkerIncomplete = cleanVar0042.creds?.me?.name === "~" && cleanVar0042.creds?.registered !== true;
+    const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || pairingMarkerIncomplete || cleanVar0042.creds?.registered === false;
+    if (config.USE_PAIRING_CODE && pairingMarkerIncomplete) {
       console.warn("[PAIRING] Marcador de pareamento incompleto encontrado; limpando apenas creds.me/pairingCode para iniciar registro, sem apagar a sessão.");
       delete cleanVar0042.creds.me;
       delete cleanVar0042.creds.pairingCode;
@@ -342,7 +343,7 @@ async function startMalvin() {
       if (DEBUG_WHATSAPP) console.log("[WA-DIAG] creds.update recebido: campos=" + Object.keys(update || {}).join(",") + ", registered=" + String(update?.registered ?? cleanVar0042.creds?.registered ?? "desconhecido") + ", hasMe=" + String(Boolean(update?.me || cleanVar0042.creds?.me)));
     });
     const pairingNumber = String(config.PAIRING_NUMBER || "").replace(/\D/g, "");
-    const shouldRequestPairingCode = config.USE_PAIRING_CODE && pairingNumber && (pairingSessionIncomplete || config.FORCE_PAIRING_CODE);
+    const shouldRequestPairingCode = config.USE_PAIRING_CODE && pairingNumber && pairingSessionIncomplete && (config.FORCE_PAIRING_CODE || cleanVar0042.creds?.registered !== true);
     let pairingRequested = false;
     const requestPairingCode = async () => {
       if (pairingRequested) return;
@@ -397,6 +398,12 @@ async function startMalvin() {
     Malvin.ev.process(async cleanVar0190 => {
       if (cleanVar0190["creds.update"]) {
         await cleanVar0053();
+        const updatedCreds = cleanVar0190["creds.update"];
+        if (updatedCreds?.registered === true) {
+          pairingCodeState.status = "registrado";
+          pairingCodeState.error = null;
+          console.log("✅ [PAIRING] Credenciais registradas e persistidas; restartRequired será tratado sem apagar a sessão.");
+        }
       }
     });
     setupAutoReact(Malvin);

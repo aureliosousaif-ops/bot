@@ -88,8 +88,11 @@ const setupConnectionHandler = (
         }
 
         if (connection === "close") {
-            const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            console.log(`Connection closed due to: ${reason}`);
+            const disconnectError = lastDisconnect?.error;
+            const reason = new Boom(disconnectError)?.output?.statusCode;
+            const reasonText = disconnectError?.message || "sem mensagem";
+            const serverReason = disconnectError?.data?.reason || disconnectError?.data?.status || "não informado";
+            console.log(`Connection closed due to: ${reason}; mensagem=${reasonText}; motivoServidor=${serverReason}`);
 
             const handleReconnect = () => {
                 if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
@@ -115,15 +118,7 @@ const setupConnectionHandler = (
 
             switch (reason) {
                 case DisconnectReason.badSession:
-                    console.log(
-                        "Bad session file, automatically deleted...please scan again",
-                    );
-                    try {
-                        await fs.remove(sessionDir);
-                    } catch (e) {
-                        console.error("Failed to remove session:", e);
-                    }
-                    process.exit(1);
+                    console.error("Sessão rejeitada pelo WhatsApp; ela não será apagada automaticamente. Corrija ou remova manualmente somente após análise.");
                     break;
 
                 case DisconnectReason.connectionReplaced:
@@ -134,20 +129,15 @@ const setupConnectionHandler = (
                     break;
 
                 case DisconnectReason.loggedOut:
-                    console.log(
-                        "Device logged out, session file automatically deleted...please scan again",
-                    );
-                    try {
-                        await fs.remove(sessionDir);
-                    } catch (e) {
-                        console.error("❌ Failed to remove session:", e);
-                    }
-                    process.exit(1);
+                    console.error("Dispositivo desconectado pelo WhatsApp; sessão preservada e reconexão automática interrompida.");
                     break;
 
                 case DisconnectReason.connectionClosed:
                 case DisconnectReason.connectionLost:
                 case DisconnectReason.restartRequired:
+                    if (reason === DisconnectReason.restartRequired) {
+                        console.log("🔁 restartRequired (515): possível pareamento concluído; reconectando sem apagar a sessão.");
+                    }
                     console.log("🕗 Reconnecting...");
                     handleReconnect();
                     break;
