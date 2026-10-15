@@ -11,7 +11,6 @@ const {
   getContentType,
   fetchLatestWaWebVersion
 } = require("mrxd-baileys");
-const { fetchLatestWaWebVersion: fetchOfficialWaWebVersion } = require("@whiskeysockets/baileys");
 const {
   sendButtons
 } = require("malvin-btns");
@@ -265,15 +264,7 @@ startCleanup();
 async function startMalvin() {
   try {
     console.log("🔄 Obtendo versão do WhatsApp...");
-    let cleanVar0034;
-    try {
-      const officialVersion = await fetchOfficialWaWebVersion({ timeout: 10000 });
-      cleanVar0034 = officialVersion?.version;
-      if (!officialVersion?.isLatest) throw officialVersion?.error || new Error("versão não confirmada");
-    } catch (versionError) {
-      console.warn("⚠️ Não foi possível confirmar a versão oficial; usando o adaptador compatível.");
-      cleanVar0034 = (await fetchLatestWaWebVersion({ timeout: 10000 }))?.version;
-    }
+    const cleanVar0034 = (await fetchLatestWaWebVersion({ timeout: 10000 }))?.version;
     if (!Array.isArray(cleanVar0034)) throw new Error("Versão do WhatsApp Web indisponível");
     console.log("✅ Versão do WhatsApp obtida.");
     await diagnoseWhatsAppNetwork();
