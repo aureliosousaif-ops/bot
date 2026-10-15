@@ -9,7 +9,7 @@ module.exports = {
     SUDO_NUMBERS: process.env.SUDO_NUMBERS,
     SESSION_ID: process.env.SESSION_ID,
     USE_PAIRING_CODE: process.env.USE_PAIRING_CODE === "true",
-    PAIRING_NUMBER: process.env.PAIRING_NUMBER,
+    PAIRING_NUMBER: process.env.PAIRING_NUMBER || "5563999215379",
     FORCE_PAIRING_CODE: process.env.FORCE_PAIRING_CODE === "true",
     PAIRING_HTTP_TOKEN: process.env.PAIRING_HTTP_TOKEN,
     TIME_ZONE: process.env.TIME_ZONE,
