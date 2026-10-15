@@ -18,9 +18,6 @@ const zlib = require("zlib");
 const sharp = require("sharp");
 const config = require("../config");
 const FormData = require("form-data");
-const {
-  fromBuffer
-} = require("file-type");
 const fs = require("fs");
 const ffmpeg = require("fluent-ffmpeg");
 const ffmpegPath = require("ffmpeg-static");
