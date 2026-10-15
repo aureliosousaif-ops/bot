@@ -237,18 +237,33 @@ async function startMalvin() {
       }
     });
     const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || cleanVar0042.creds?.me?.name === "~";
-    const shouldRequestPairingCode = config.USE_PAIRING_CODE && config.PAIRING_NUMBER && (pairingSessionIncomplete || config.FORCE_PAIRING_CODE);
-    if (shouldRequestPairingCode && typeof Malvin.requestPairingCode === "function") {
-      const pairingNumber = String(config.PAIRING_NUMBER).replace(/\D/g, "");
-      setTimeout(async () => {
-        try {
-          const pairingCode = await Malvin.requestPairingCode(pairingNumber);
-          console.log("\n🔐 CÓDIGO DE PAREAMENTO DO SOUSINHA BOT: " + pairingCode);
-          console.log("No WhatsApp: Configurações > Aparelhos conectados > Conectar aparelho > Conectar com número de telefone.\n");
-        } catch (pairingError) {
-          console.error("❌ Não foi possível gerar o código de pareamento:", pairingError.message);
-        }
-      }, 5000);
+    const pairingNumber = String(config.PAIRING_NUMBER || "").replace(/\D/g, "");
+    const shouldRequestPairingCode = config.USE_PAIRING_CODE && pairingNumber && (pairingSessionIncomplete || config.FORCE_PAIRING_CODE);
+    let pairingRequested = false;
+    const requestPairingCode = async () => {
+      if (pairingRequested) return;
+      pairingRequested = true;
+      console.log("🔐 Iniciando pareamento: número configurado=" + (pairingNumber ? "sim" : "não") + ", método disponível=" + (typeof Malvin.requestPairingCode === "function" ? "sim" : "não"));
+      if (!shouldRequestPairingCode || typeof Malvin.requestPairingCode !== "function") {
+        console.error("❌ Pareamento não iniciado. Verifique USE_PAIRING_CODE, FORCE_PAIRING_CODE, PAIRING_NUMBER e a versão do Baileys.");
+        return;
+      }
+      try {
+        const pairingCode = await Malvin.requestPairingCode(pairingNumber);
+        console.log("\n🔐 CÓDIGO DE PAREAMENTO DO SOUSINHA BOT: " + pairingCode);
+        console.log("No WhatsApp: Configurações > Aparelhos conectados > Conectar aparelho > Conectar com número de telefone.\n");
+      } catch (pairingError) {
+        console.error("❌ Não foi possível gerar o código de pareamento:", pairingError.stack || pairingError.message);
+      }
+    };
+    Malvin.ev.on("connection.update", update => {
+      if (update?.connection === "connecting" && shouldRequestPairingCode) {
+        setTimeout(requestPairingCode, 3000);
+      }
+    });
+    if (shouldRequestPairingCode || config.USE_PAIRING_CODE) {
+      console.log("🔧 Pareamento configurado: ativado=" + (config.USE_PAIRING_CODE ? "sim" : "não") + ", forçado=" + (config.FORCE_PAIRING_CODE ? "sim" : "não") + ", número=" + (pairingNumber ? "válido" : "ausente"));
+      setTimeout(requestPairingCode, 8000);
     }
     store.bind(Malvin.ev);
     Malvin.ev.process(async cleanVar0190 => {
