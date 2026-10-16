@@ -9,13 +9,17 @@ class DatabaseManager {
     static getInstance() {
         if (!DatabaseManager.instance) {
             const DATABASE_URL = config.DATABASE_URL;
-            const DEFAULT_SQLITE_PATH = path.join(__dirname, "database.db");
+            const DEFAULT_SQLITE_PATH = config.SQLITE_PATH || path.join(__dirname, "database.db");
 
             if (!DATABASE_URL) {
                 console.log("💡 DATABASE_URL Empty, Using Path");
                 const dbDir = path.dirname(DEFAULT_SQLITE_PATH);
                 if (!fs.existsSync(dbDir)) {
                     fs.mkdirSync(dbDir, { recursive: true });
+                }
+
+                if (config.SQLITE_PATH) {
+                    console.log("💾 SQLite persistente: " + DEFAULT_SQLITE_PATH);
                 }
 
                 DatabaseManager.instance = new Sequelize({

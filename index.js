@@ -1,5 +1,6 @@
 require("events").EventEmitter.defaultMaxListeners = 960;
 require("./king/mxdhelpers");
+const { usePostgresAuthState } = require("./king/socket/postgresAuthState");
 const {
   default: malvinConnect,
   isJidGroup,
@@ -305,12 +306,16 @@ async function startMalvin() {
     await diagnoseWhatsAppNetwork();
     await fs.ensureDir(sessionDir);
     const cleanVar0082 = path.join(sessionDir, "session.db");
-    console.log("🔄 Abrindo autenticação local...");
+    const usePostgresAuth = String(config.WHATSAPP_AUTH_STORAGE).toLowerCase() === "postgres";
+    console.log(usePostgresAuth ? "🔄 Abrindo autenticação no Supabase/PostgreSQL..." : "🔄 Abrindo autenticação local...");
+    const authState = usePostgresAuth
+      ? await usePostgresAuthState(config.WHATSAPP_AUTH_DATABASE_URL, config.WHATSAPP_AUTH_SESSION_ID)
+      : await useSQLiteAuthState(cleanVar0082);
     const {
       state: cleanVar0042,
       saveCreds: cleanVar0053
-    } = await useSQLiteAuthState(cleanVar0082);
-    console.log("✅ Autenticação local aberta.");
+    } = authState;
+    console.log(usePostgresAuth ? "✅ Autenticação PostgreSQL aberta." : "✅ Autenticação local aberta.");
     const pairingMarkerIncomplete = cleanVar0042.creds?.me?.name === "~" && cleanVar0042.creds?.registered !== true;
     const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || pairingMarkerIncomplete || cleanVar0042.creds?.registered === false;
     if (config.USE_PAIRING_CODE && pairingMarkerIncomplete) {
