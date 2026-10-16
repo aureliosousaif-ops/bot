@@ -28,5 +28,11 @@ services:
         value: "false"
       - key: DATABASE_URL
         sync: false
+      - key: WHATSAPP_AUTH_STORAGE
+        value: postgres
+      - key: WHATSAPP_AUTH_DATABASE_URL
+        sync: false
+      - key: WHATSAPP_AUTH_SESSION_ID
+        value: sousinha-bot
       - key: MALVIN_API_KEY
         sync: false

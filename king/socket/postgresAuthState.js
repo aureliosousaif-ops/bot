@@ -12,8 +12,8 @@ function createPool(connectionString) {
 
   return new Pool({
     connectionString,
-    max: Number(process.env.WHATSAPP_AUTH_PG_POOL_MAX || 4),
-    idleTimeoutMillis: 10000,
+    max: Number(process.env.WHATSAPP_AUTH_PG_POOL_MAX || 1),
+    idleTimeoutMillis: 5000,
     connectionTimeoutMillis: 10000,
     statement_timeout: 15000,
     ssl: process.env.PGSSL === 'false' ? false : { rejectUnauthorized: false },

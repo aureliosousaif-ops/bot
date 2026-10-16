@@ -98,6 +98,15 @@ const setupConnectionHandler = (
             const serverReason = disconnectError?.data?.reason || disconnectError?.data?.status || "não informado";
             console.log(`Connection closed due to: ${reason}; mensagem=${reasonText}; motivoServidor=${serverReason}`);
 
+            if (callbacks.onClose) {
+                try {
+                    await callbacks.onClose(Malvin, reason);
+                } catch (error) {
+                    console.error("[WA-DIAG] Falha ao limpar socket encerrado:", error.message);
+                }
+            }
+            Malvin.ev?.removeAllListeners?.();
+
             const handleReconnect = () => {
                 if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
                     const cooldown = 600000;

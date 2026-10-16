@@ -597,7 +597,8 @@ async function useSQLiteAuthState(_0x4bf765) {
     },
     saveCreds: () => {
       _0x576e03("creds", _0x41ddd3);
-    }
+    },
+    close: () => _0x8e88df.close()
   };
 }
 const runtime = _0x3f0af7 => {

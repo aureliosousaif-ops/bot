@@ -202,13 +202,22 @@ let store;
 let pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null };
 let qrState = { value: null, generatedAt: 0, expiresAt: 0 };
 let socketStartInFlight = false;
+let activeAuthClose = null;
+let activeSocket = null;
+let processHandlersInstalled = false;
+let pluginsLoaded = false;
+let autoBioTimer = null;
+let autoBioStartupTimer = null;
+let waConnectionState = "starting";
 logger.level = "silent";
 app.use(express.static("king"));
 app.use(express.urlencoded({ extended: false }));
 app.get("/", (cleanVar0094, cleanVar0181) => cleanVar0181.status(200).send("Sousinha Bot está online."));
 app.get("/health", (cleanVar0225, cleanVar0185) => cleanVar0185.status(200).json({
   status: "alive",
-  uptime: process.uptime()
+  uptime: process.uptime(),
+  whatsapp: waConnectionState,
+  authStorage: String(config.WHATSAPP_AUTH_STORAGE).toLowerCase()
 }));
 function pairingTokenIsValid(token) {
   const expected = String(config.PAIRING_HTTP_TOKEN || "");
@@ -324,6 +333,20 @@ async function startMalvin() {
     await fs.ensureDir(sessionDir);
     const cleanVar0082 = path.join(sessionDir, "session.db");
     const usePostgresAuth = String(config.WHATSAPP_AUTH_STORAGE).toLowerCase() === "postgres";
+    if (usePostgresAuth && !config.WHATSAPP_AUTH_DATABASE_URL) {
+      throw new Error("WHATSAPP_AUTH_DATABASE_URL/DATABASE_URL não configurada para persistir a sessão no Render.");
+    }
+    if (!usePostgresAuth && !config.SQLITE_PATH) {
+      console.warn("[WA-DIAG] Autenticação SQLite em caminho local; o Render pode perder a sessão após reinício. Configure WHATSAPP_AUTH_STORAGE=postgres e WHATSAPP_AUTH_DATABASE_URL.");
+    }
+    if (activeAuthClose) {
+      try {
+        await activeAuthClose();
+      } catch (cleanVar0024) {
+        console.error("[WA-DIAG] Falha ao fechar armazenamento de sessão anterior: " + safeErrorText(cleanVar0024));
+      }
+      activeAuthClose = null;
+    }
     console.log(usePostgresAuth ? "🔄 Abrindo autenticação no Supabase/PostgreSQL..." : "🔄 Abrindo autenticação local...");
     const authState = usePostgresAuth
       ? await usePostgresAuthState(config.WHATSAPP_AUTH_DATABASE_URL, config.WHATSAPP_AUTH_SESSION_ID)
@@ -332,6 +355,7 @@ async function startMalvin() {
       state: cleanVar0042,
       saveCreds: cleanVar0053
     } = authState;
+    activeAuthClose = typeof authState.close === "function" ? authState.close : null;
     console.log(usePostgresAuth ? "✅ Autenticação PostgreSQL aberta." : "✅ Autenticação local aberta.");
     const pairingMarkerIncomplete = cleanVar0042.creds?.me?.name === "~" && cleanVar0042.creds?.registered !== true;
     const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || pairingMarkerIncomplete || cleanVar0042.creds?.registered === false;
@@ -341,6 +365,10 @@ async function startMalvin() {
       delete cleanVar0042.creds.pairingCode;
       await cleanVar0053();
     }
+    if (activeSocket?.ev?.removeAllListeners) {
+      activeSocket.ev.removeAllListeners();
+    }
+    activeSocket = null;
     if (store) {
       store.destroy();
     }
@@ -357,6 +385,8 @@ async function startMalvin() {
     };
     console.log("🔄 Criando conexão com o WhatsApp...");
     Malvin = malvinConnect(cleanVar0167);
+    activeSocket = Malvin;
+    waConnectionState = "connecting";
     console.log("✅ Socket do WhatsApp criado; aguardando QR ou conexão...");
     let connectionState = "created";
     const socketWatchdog = setTimeout(() => {
@@ -366,6 +396,7 @@ async function startMalvin() {
     }, 20000);
     Malvin.ev.on("connection.update", update => {
       if (update?.connection) connectionState = update.connection;
+      if (update?.connection) waConnectionState = update.connection;
       if (DEBUG_WHATSAPP) {
         const details = {
           connection: update?.connection || null,
@@ -466,9 +497,21 @@ async function startMalvin() {
     setupAntiEdit(Malvin);
     setupStatusHandlers(Malvin);
     setupGroupEventsListeners(Malvin);
-    loadPlugins(pluginsPath);
+    if (!pluginsLoaded) {
+      loadPlugins(pluginsPath);
+      pluginsLoaded = true;
+    }
     setupCommandHandler(Malvin);
     setupConnectionHandler(Malvin, sessionDir, startMalvin, {
+      onClose: async cleanVar0160 => {
+        waConnectionState = "closed";
+        if (cleanVar0160 === activeSocket) activeSocket = null;
+        if (activeAuthClose) {
+          await activeAuthClose();
+          activeAuthClose = null;
+        }
+        store?.destroy();
+      },
       onOpen: async cleanVar0160 => {
         const cleanVar0235 = await getAllSettings();
         console.log("💙 Connected to Whatsapp, Active! Comandos liberados; sincronizações opcionais continuam em segundo plano.");
@@ -528,12 +571,29 @@ async function startMalvin() {
       }
     });
     socketStartInFlight = false;
-    process.on("SIGINT", () => store?.destroy());
-    process.on("SIGTERM", () => store?.destroy());
+    if (!processHandlersInstalled) {
+      const shutdown = async () => {
+        try {
+          activeSocket?.ev?.removeAllListeners?.();
+          store?.destroy();
+          if (activeAuthClose) await activeAuthClose();
+        } finally {
+          process.exit(0);
+        }
+      };
+      process.once("SIGINT", shutdown);
+      process.once("SIGTERM", shutdown);
+      processHandlersInstalled = true;
+    }
   } catch (cleanVar0084) {
     socketStartInFlight = false;
     console.error("Socket initialization error:", cleanVar0084);
-    setTimeout(() => startMalvin(), 5000);
+    const authConfigError = /DATABASE_URL|autenticação PostgreSQL|WHATSAPP_AUTH_DATABASE_URL/i.test(String(cleanVar0084?.message || cleanVar0084));
+    if (!authConfigError) {
+      setTimeout(() => startMalvin(), 15000);
+    } else {
+      console.error("[WA-DIAG] Reconexão automática pausada: configure o armazenamento persistente da sessão.");
+    }
   }
 }
 function setupAutoReact(cleanVar0189) {
@@ -653,11 +713,19 @@ function setupAntiDelete(cleanVar0039) {
   });
 }
 function setupAutoBio(cleanVar0198) {
+  if (autoBioStartupTimer) clearTimeout(autoBioStartupTimer);
+  if (autoBioTimer) clearInterval(autoBioTimer);
+  autoBioStartupTimer = null;
+  autoBioTimer = null;
   (async () => {
     const cleanVar0114 = await getAllSettings();
     if (cleanVar0114.AUTO_BIO === "true") {
-      setTimeout(() => MalvinAutoBio(cleanVar0198), 1000);
-      setInterval(() => MalvinAutoBio(cleanVar0198), 60000);
+      autoBioStartupTimer = setTimeout(() => {
+        if (global.MalvinBot === cleanVar0198) MalvinAutoBio(cleanVar0198);
+      }, 1000);
+      autoBioTimer = setInterval(() => {
+        if (global.MalvinBot) MalvinAutoBio(global.MalvinBot);
+      }, 60000);
     }
     global.MalvinBot = cleanVar0198;
     global.botId = botSettings.BOT_ID || cleanVar0198.user?.id?.split(":")[0] + "@s.whatsapp.net";
