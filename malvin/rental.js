@@ -2,9 +2,9 @@
 
 const { mxd } = require('../king');
 const { getGroupSetting, setGroupSetting, getAllGroupSettings, getConfiguredGroupJids } = require('../king/database/groupConfig');
-const config = require('../config');
+const { isOwnerAuthorized, ownerNumberForDisplay } = require('./ownerAuth');
 
-const OWNER_NUMBER = String(config.OWNER_NUMBER || '5563999215379');
+const OWNER_NUMBER = ownerNumberForDisplay();
 const CONTROL_COMMANDS = new Set(['ativarbot', 'desativarbot', 'alugar', 'statusaluguel']);
 let rentalMonitorStarted = false;
 
@@ -22,33 +22,8 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? 'inválida' : date.toLocaleDateString('pt-BR');
 }
 
-function normalizeNumber(value) {
-  return String(value || '')
-    .split('@')[0]
-    .split(':')[0]
-    .replace(/\D/g, '');
-}
-
 function allowedOwner(ctx) {
-  if (ctx.isSuperUser === true || ctx.isOwner === true) return true;
-  const configuredOwner = normalizeNumber(OWNER_NUMBER);
-  if (!configuredOwner) return false;
-  const messageKey = ctx.mek?.key || ctx.m?.key || {};
-  const candidates = [
-    ctx.sender,
-    ctx.authorMessage,
-    ctx.groupMember,
-    ctx.user,
-    messageKey.senderPn,
-    messageKey.participantPn,
-    messageKey.participantAlt,
-    messageKey.remoteJidAlt,
-    messageKey.participant,
-    messageKey.remoteJid
-  ]
-    .map(normalizeNumber)
-    .filter((value) => value.length > 5);
-  return candidates.some((sender) => sender === configuredOwner || sender.endsWith(configuredOwner) || configuredOwner.endsWith(sender));
+  return isOwnerAuthorized(ctx);
 }
 
 function groupOnly(ctx) {
@@ -255,4 +230,4 @@ mxd({
   return ctx.reply(`🟢 *GRUPOS COM ALUGUEL ATIVO*\n\n${rows.join('\n\n')}`);
 });
 
-module.exports = { CONTROL_COMMANDS, startRentalExpiryMonitor, checkRentalExpirations };
+module.exports = { CONTROL_COMMANDS, startRentalExpiryMonitor, checkRentalExpirations, allowedOwner };
