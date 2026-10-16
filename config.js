@@ -21,6 +21,10 @@ module.exports = {
     WHATSAPP_AUTH_DATABASE_URL: process.env.WHATSAPP_AUTH_DATABASE_URL || process.env.DATABASE_URL,
     WHATSAPP_AUTH_SESSION_ID: process.env.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot",
     MALVIN_API_KEY: process.env.MALVIN_API_KEY, // Get your free key at https://api.malvintech.co.zw (sign up, key is on your dashboard)
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
+    GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+    GEMINI_AUTO_REPLY: process.env.GEMINI_AUTO_REPLY !== "false",
+    GEMINI_GROUPS_ONLY: process.env.GEMINI_GROUPS_ONLY !== "false",
     ENABLE_RPG: process.env.ENABLE_RPG === "true",
 };
 

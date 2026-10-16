@@ -100,6 +100,7 @@ const {
   SQLiteStore
 } = require("./king/database/msgStore");
 const config = require("./config");
+const { setupGeminiAutoReply } = require("./king/geminiChat");
 const {
   fancy,
   setGlobalStyle
@@ -444,6 +445,7 @@ async function startMalvin() {
     setupNewsletterReact(Malvin);
     setupPresence(Malvin);
     setupChatBotAndAntiLink(Malvin);
+    setupGeminiAutoReply(Malvin);
     setupMalvinChatBot(Malvin, createContext, createContext2, googleTTS);
     setupAntiEdit(Malvin);
     setupStatusHandlers(Malvin);
