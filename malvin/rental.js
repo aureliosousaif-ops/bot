@@ -26,7 +26,19 @@ function allowedOwner(ctx) {
   if (ctx.isSuperUser === true || ctx.isOwner === true) return true;
   const configuredOwner = OWNER_NUMBER.replace(/\D/g, '');
   if (!configuredOwner) return false;
-  const candidates = [ctx.sender, ctx.authorMessage, ctx.groupMember, ctx.user]
+  const messageKey = ctx.mek?.key || ctx.m?.key || {};
+  const candidates = [
+    ctx.sender,
+    ctx.authorMessage,
+    ctx.groupMember,
+    ctx.user,
+    messageKey.senderPn,
+    messageKey.participantPn,
+    messageKey.participantAlt,
+    messageKey.remoteJidAlt,
+    messageKey.participant,
+    messageKey.remoteJid
+  ]
     .map((value) => String(value || '').split('@')[0].split(':')[0].replace(/\D/g, ''))
     .filter((value) => value.length > 5);
   return candidates.some((sender) => sender === configuredOwner || sender.endsWith(configuredOwner) || configuredOwner.endsWith(sender));
