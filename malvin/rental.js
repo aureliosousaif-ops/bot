@@ -2,8 +2,9 @@
 
 const { mxd } = require('../king');
 const { getGroupSetting, setGroupSetting, getAllGroupSettings, getConfiguredGroupJids } = require('../king/database/groupConfig');
+const config = require('../config');
 
-const OWNER_NUMBER = '5563999215379';
+const OWNER_NUMBER = String(config.OWNER_NUMBER || '5563999215379');
 const CONTROL_COMMANDS = new Set(['ativarbot', 'desativarbot', 'alugar', 'statusaluguel']);
 let rentalMonitorStarted = false;
 
@@ -23,8 +24,12 @@ function formatDate(value) {
 
 function allowedOwner(ctx) {
   if (ctx.isSuperUser === true || ctx.isOwner === true) return true;
-  const sender = String(ctx.sender || '').split('@')[0].split(':')[0].replace(/\D/g, '');
-  return sender === OWNER_NUMBER || sender.endsWith(OWNER_NUMBER) || OWNER_NUMBER.endsWith(sender);
+  const configuredOwner = OWNER_NUMBER.replace(/\D/g, '');
+  if (!configuredOwner) return false;
+  const candidates = [ctx.sender, ctx.authorMessage, ctx.groupMember, ctx.user]
+    .map((value) => String(value || '').split('@')[0].split(':')[0].replace(/\D/g, ''))
+    .filter((value) => value.length > 5);
+  return candidates.some((sender) => sender === configuredOwner || sender.endsWith(configuredOwner) || configuredOwner.endsWith(sender));
 }
 
 function groupOnly(ctx) {
