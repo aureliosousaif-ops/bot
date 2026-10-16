@@ -1,5 +1,22 @@
 # Sousinha Bot — Gemini e RPG
 
+## Groq (opcional)
+
+Para usar Groq como provedor principal, crie uma chave em [Groq Console](https://console.groq.com/keys) e adicione no Render:
+
+```text
+GROQ_API_KEY=sua-chave
+GROQ_MODEL=llama-3.3-70b-versatile
+GEMINI_AUTO_REPLY=true
+GEMINI_GROUPS_ONLY=true
+```
+
+Quando `GROQ_API_KEY` estiver configurada, ela terá prioridade sobre a Gemini. O código usa o endpoint oficial de chat completions da Groq e não registra a chave. O modelo padrão acima é o exemplo de chat usado no quickstart oficial; a disponibilidade e os limites dependem da conta e podem mudar, portanto o identificador pode ser ajustado em `GROQ_MODEL`.
+
+As respostas continuam limitadas por conversa e por janela local. A Groq informa limites por RPM, RPD, TPM e TPD; ao receber HTTP 429, o bot registra o limite e não entra em loop.
+
+Para voltar à Gemini, remova `GROQ_API_KEY` do ambiente ou deixe-a vazia.
+
 ## Gemini
 
 1. Crie uma chave no [Google AI Studio](https://aistudio.google.com/apikey).
