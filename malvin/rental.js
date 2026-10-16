@@ -22,9 +22,16 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? 'inválida' : date.toLocaleDateString('pt-BR');
 }
 
+function normalizeNumber(value) {
+  return String(value || '')
+    .split('@')[0]
+    .split(':')[0]
+    .replace(/\D/g, '');
+}
+
 function allowedOwner(ctx) {
   if (ctx.isSuperUser === true || ctx.isOwner === true) return true;
-  const configuredOwner = OWNER_NUMBER.replace(/\D/g, '');
+  const configuredOwner = normalizeNumber(OWNER_NUMBER);
   if (!configuredOwner) return false;
   const messageKey = ctx.mek?.key || ctx.m?.key || {};
   const candidates = [
@@ -39,7 +46,7 @@ function allowedOwner(ctx) {
     messageKey.participant,
     messageKey.remoteJid
   ]
-    .map((value) => String(value || '').split('@')[0].split(':')[0].replace(/\D/g, ''))
+    .map(normalizeNumber)
     .filter((value) => value.length > 5);
   return candidates.some((sender) => sender === configuredOwner || sender.endsWith(configuredOwner) || configuredOwner.endsWith(sender));
 }
