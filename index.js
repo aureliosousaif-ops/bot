@@ -100,6 +100,7 @@ const {
   SQLiteStore
 } = require("./king/database/msgStore");
 const config = require("./config");
+const { isOwnerAuthorized } = require("./malvin/ownerAuth");
 const { setupGeminiAutoReply } = require("./king/geminiChat");
 const {
   fancy,
@@ -982,10 +983,17 @@ function setupCommandHandler(cleanVar0141) {
         await cleanVar0141.sendMessage(cleanVar0109, { text: cleanVar0087.OWNER_NUMBER || "5563999215379" }, { quoted: cleanVar0165 });
         return;
       }
-      const normalizedOwnerSender = String(cleanVar0028 || '').split('@')[0].split(':')[0].replace(/\D/g, "");
-      const normalizedConfiguredOwner = String(cleanVar0087.OWNER_NUMBER || "5563999215379").replace(/\D/g, "");
-      const ownerNumberMatches = normalizedOwnerSender === normalizedConfiguredOwner || normalizedOwnerSender.endsWith(normalizedConfiguredOwner) || normalizedConfiguredOwner.endsWith(normalizedOwnerSender);
-      if (["owner", "origin"].includes(cleanVar0097.category) && !cleanVar0127 && !ownerNumberMatches) {
+      const ownerAuthorized = isOwnerAuthorized({
+        sender: cleanVar0028,
+        authorMessage: cleanVar0045,
+        messageAuthor: cleanVar0045,
+        user: cleanVar0111,
+        mek: cleanVar0165,
+        groupInfo: cleanVar0121,
+        participants: cleanVar0119,
+        isSuperUser: cleanVar0127,
+      }, { allowSuperUser: true });
+      if (["owner", "origin"].includes(cleanVar0097.category) && !ownerAuthorized) {
         await cleanVar0141.sendMessage(cleanVar0109, { text: "❌ Comando exclusivo do dono.\nContato oficial: " + (cleanVar0087.OWNER_NUMBER || "5563999215379") }, { quoted: cleanVar0165 });
         return;
       }
