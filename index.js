@@ -215,6 +215,9 @@ function pairingTokenIsValid(token) {
   if (!expected || !received || expected.length !== received.length) return false;
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received));
 }
+function pairingTokenFromRequest(req) {
+  return req.body?.token || req.query?.token || req.get("x-pairing-token") || "";
+}
 app.get("/pairing", (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!config.PAIRING_HTTP_TOKEN) return res.status(404).send("Pareamento HTTP desativado.");
@@ -222,7 +225,7 @@ app.get("/pairing", (req, res) => {
 });
 app.post("/pairing", (req, res) => {
   res.set("Cache-Control", "no-store");
-  if (!pairingTokenIsValid(req.body?.token)) return res.status(401).type("html").send("Token inválido.");
+  if (!pairingTokenIsValid(pairingTokenFromRequest(req))) return res.status(401).type("html").send("Token inválido.");
   const available = pairingCodeState.code && Date.now() < pairingCodeState.expiresAt && !pairingCodeState.used;
   if (!available) {
     const detail = pairingCodeState.error || (pairingCodeState.status === "aguardando" ? "O WhatsApp ainda não liberou o código." : "Código indisponível, expirado ou já utilizado.");
@@ -233,14 +236,26 @@ app.post("/pairing", (req, res) => {
   pairingCodeState.status = "usado";
   res.type("html").send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Código de pareamento</title><style>body{font-family:system-ui;text-align:center;margin:48px auto;padding:20px;background:#111;color:#eee}.code{font-size:2.2rem;letter-spacing:.25rem;font-weight:800;background:#222;padding:20px;border-radius:12px}</style><h1>Sousinha Bot</h1><p>Digite este código no WhatsApp em Aparelhos conectados:</p><div class="code">${code}</div><p>Este código foi exibido uma única vez.</p>`);
 });
-app.get("/qr", (req, res) => {
+app.get("/qr", async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!config.PAIRING_HTTP_TOKEN) return res.status(404).send("QR HTTP desativado.");
+  if (req.query?.token) {
+    if (!pairingTokenIsValid(pairingTokenFromRequest(req))) return res.status(401).json({ error: "Token inválido." });
+    if (!qrState.value || Date.now() >= qrState.expiresAt) return res.status(410).json({ error: "QR indisponível ou expirado." });
+    try {
+      const imageDataUrl = await qrcode.toDataURL(qrState.value, { errorCorrectionLevel: "M", margin: 2, width: 360 });
+      const secondsLeft = Math.max(0, Math.ceil((qrState.expiresAt - Date.now()) / 1000));
+      return res.type("html").send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>QR Code do Sousinha Bot</title><style>body{font-family:system-ui;text-align:center;margin:32px auto;padding:20px;background:#111;color:#eee}img{display:block;width:360px;max-width:100%;height:auto;margin:20px auto;background:#fff;padding:12px;border-radius:12px}</style><h1>QR Code do Sousinha Bot</h1><p>Escaneie este QR no WhatsApp em Aparelhos conectados.</p><img src="${imageDataUrl}" alt="QR Code para conectar o Sousinha Bot"><p>Este QR expira em aproximadamente ${secondsLeft}s.</p><p>Se expirar, atualize e consulte novamente com o token.</p>`);
+    } catch (error) {
+      console.error("[QR] Falha ao renderizar QR:", safeErrorText(error));
+      return res.status(500).json({ error: "Não foi possível renderizar o QR Code atual." });
+    }
+  }
   res.type("html").send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>QR Code do Sousinha Bot</title><style>body{font-family:system-ui;max-width:420px;margin:48px auto;padding:20px;background:#111;color:#eee}input,button{box-sizing:border-box;width:100%;padding:13px;margin-top:10px;border-radius:8px;border:1px solid #555;background:#222;color:#fff}button{background:#25d366;border:0;color:#111;font-weight:700}</style><h1>QR Code do Sousinha Bot</h1><p>O endpoint retorna o payload atual para uma interface QR compatível.</p><form method="post" action="/qr"><input name="token" type="password" autocomplete="off" required placeholder="Token de acesso"><button>Consultar QR atual</button></form>`);
 });
 app.post("/qr", async (req, res) => {
   res.set("Cache-Control", "no-store");
-  if (!pairingTokenIsValid(req.body?.token)) return res.status(401).json({ error: "Token inválido." });
+  if (!pairingTokenIsValid(pairingTokenFromRequest(req))) return res.status(401).json({ error: "Token inválido." });
   if (!qrState.value || Date.now() >= qrState.expiresAt) return res.status(410).json({ error: "QR indisponível ou expirado." });
   try {
     const imageDataUrl = await qrcode.toDataURL(qrState.value, {
