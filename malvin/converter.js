@@ -32,7 +32,7 @@ async function convertVideoWithWatermark(input, output, watermark, duration) {
 
 mxd({
     pattern: "sticker",
-    aliases: ["s", "st", "take", "figurinha"],
+    aliases: ["s", "st", "take"],
     category: "converter",
     react: "🔄️",
     description: "Criar figurinha com marca d’água do Sousinha Bot",

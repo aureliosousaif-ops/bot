@@ -9,7 +9,6 @@ const COMMAND_ALIASES_PT_BR = Object.freeze({
   ajuda: 'menu',
   figurinha: 'sticker',
   dono: 'owner',
-  saldo: 'goldbalance',
   clima: 'weather',
   piada: 'joke',
   pais: 'country',
@@ -65,7 +64,7 @@ const COMMAND_ALIASES_PT_BR = Object.freeze({
   ajudatexto: 'texthelp',
   conselho: 'council',
   aceitar: 'accept',
-  aprovar: 'approve',
+  aprovar: 'accept',
   adicionar: 'add',
   amizade: 'add-friend',
   conquistas: 'achievements',
@@ -83,28 +82,17 @@ const COMMAND_ALIASES_PT_BR = Object.freeze({
   escolher: 'choose',
   paises: 'country',
   definir: 'define',
-  baixar: 'download',
   economia: 'economy',
-  eventos: 'events',
   explorar: 'explore',
   amigos: 'friends',
-  grupo: 'group',
-  informacoes: 'info',
-  informações: 'info',
   lideranca: 'leaderboard',
   liderança: 'leaderboard',
-  lista: 'list',
-  listaajuda: 'help',
-  membros: 'members',
   minhasnotas: 'allnotes',
   nota: 'addnote',
   novanota: 'addnote',
   observacao: 'addnote',
-  observar: 'viewnotes',
-  pesquisarcomando: 'search',
   premio: 'daily',
   recompensa: 'daily',
-  registrar: 'register',
   relatorio: 'report',
   removernota: 'delnote',
   rolar: 'dice',
@@ -112,22 +100,17 @@ const COMMAND_ALIASES_PT_BR = Object.freeze({
   statusbot: 'botstats',
   texto: 'texthelp',
   tempojogo: 'worldtime',
-  traduzir: 'translate',
   usuario: 'profile',
   usuários: 'profile',
   vernotas: 'allnotes',
   votar: 'vote',
-  avisos: 'notifications'
-  ,baixaryoutube: 'yt'
-  ,youtube: 'yt'
+  baixaryoutube: 'yt'
   ,baixarspotify: 'spotify'
   ,musica: 'spotify'
   ,baixartiktok: 'tiktok'
   ,tiktokbaixar: 'tiktok'
   ,baixarinstagram: 'ig'
-  ,instagram: 'ig'
   ,baixarfacebook: 'fb'
-  ,facebook: 'fb'
   ,baixarcapcut: 'capcut'
   ,baixarvideo: 'video'
   ,baixaraudio: 'sendaudio'
@@ -139,7 +122,6 @@ const COMMAND_ALIASES_PT_BR = Object.freeze({
   ,converterimagem: 'toimg'
   ,convertervideo: 'tovideo'
   ,converterptt: 'toptt'
-  ,download: 'download'
 });
 
 function normalizeCommand(command) {
