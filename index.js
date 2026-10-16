@@ -888,7 +888,10 @@ function setupCommandHandler(cleanVar0141) {
       sender: cleanVar0028
     } = cleanVar0059;
     const cleanVar0187 = await buildSuperUsers(cleanVar0087, getSudoNumbers, cleanVar0103, cleanVar0087.OWNER_NUMBER || "");
-    const cleanVar0127 = cleanVar0187.includes(cleanVar0028);
+    const ownerDigits = String(cleanVar0087.OWNER_NUMBER || "5563999215379").replace(/\D/g, "");
+    const senderDigits = String(cleanVar0028 || cleanVar0241 || cleanVar0045 || "").split("@")[0].split(":")[0].replace(/\D/g, "");
+    const ownerDigitsMatch = senderDigits && ownerDigits && (senderDigits === ownerDigits || senderDigits.endsWith(ownerDigits) || ownerDigits.endsWith(senderDigits));
+    const cleanVar0127 = cleanVar0187.includes(cleanVar0028) || ownerDigitsMatch;
     if (cleanVar0087.AUTO_BLOCK && cleanVar0028 && !cleanVar0127 && !cleanVar0130) {
       const cleanVar0244 = cleanVar0087.AUTO_BLOCK.split(",").map(cleanVar0001 => cleanVar0001.trim());
       if (cleanVar0244.some(cleanVar0070 => cleanVar0028.startsWith(cleanVar0070))) {
@@ -1307,6 +1310,10 @@ function buildContext(cleanVar0043, cleanVar0090, cleanVar0078, cleanVar0101) {
   } else {
     console.log("📱 Modo local ativado: a autenticação será feita por QR Code.");
   }
-  await loadBotSettings();
-  startMalvin();
+  try {
+    await loadBotSettings();
+  } catch (error) {
+    console.error("[BOOT] Configuração do banco falhou; iniciando WhatsApp sem sincronização do banco:", safeErrorText(error));
+  }
+  await startMalvin();
 })();
