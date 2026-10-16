@@ -238,9 +238,9 @@ app.post("/pairing", (req, res) => {
 });
 app.get("/qr", async (req, res) => {
   res.set("Cache-Control", "no-store");
-  if (!config.PAIRING_HTTP_TOKEN) return res.status(404).send("QR HTTP desativado.");
-  if (req.query?.token) {
-    if (!pairingTokenIsValid(pairingTokenFromRequest(req))) return res.status(401).json({ error: "Token inválido." });
+  if (!config.PAIRING_HTTP_TOKEN && !config.PUBLIC_QR) return res.status(404).send("QR HTTP desativado.");
+  if (config.PUBLIC_QR || req.query?.token) {
+    if (!config.PUBLIC_QR && !pairingTokenIsValid(pairingTokenFromRequest(req))) return res.status(401).json({ error: "Token inválido." });
     if (!qrState.value || Date.now() >= qrState.expiresAt) return res.status(410).json({ error: "QR indisponível ou expirado." });
     try {
       const imageDataUrl = await qrcode.toDataURL(qrState.value, { errorCorrectionLevel: "M", margin: 2, width: 360 });
@@ -255,7 +255,7 @@ app.get("/qr", async (req, res) => {
 });
 app.post("/qr", async (req, res) => {
   res.set("Cache-Control", "no-store");
-  if (!pairingTokenIsValid(pairingTokenFromRequest(req))) return res.status(401).json({ error: "Token inválido." });
+  if (!config.PUBLIC_QR && !pairingTokenIsValid(pairingTokenFromRequest(req))) return res.status(401).json({ error: "Token inválido." });
   if (!qrState.value || Date.now() >= qrState.expiresAt) return res.status(410).json({ error: "QR indisponível ou expirado." });
   try {
     const imageDataUrl = await qrcode.toDataURL(qrState.value, {
