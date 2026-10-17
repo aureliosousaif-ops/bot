@@ -201,7 +201,7 @@ const PORT = process.env.PORT || 5000;
 const app = express();
 let Malvin;
 let store;
-let pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null };
+let pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null, attemptId: 0 };
 let qrState = { value: null, generatedAt: 0, expiresAt: 0 };
 const primaryAuthSessionId = config.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot";
 const recoveryAuthSessionId = config.WHATSAPP_AUTH_RECOVERY_SESSION_ID || `${primaryAuthSessionId}-recovery`;
@@ -210,6 +210,7 @@ let authRecoveryStarted = false;
 let socketStartInFlight = false;
 let activeAuthClose = null;
 let activeSocket = null;
+let pairingAttemptSequence = 0;
 let processHandlersInstalled = false;
 let pluginsLoaded = false;
 let autoBioTimer = null;
@@ -431,8 +432,9 @@ async function startMalvin() {
     console.log("🔄 Criando conexão com o WhatsApp...");
     Malvin = malvinConnect(cleanVar0167);
     activeSocket = Malvin;
+    const pairingAttemptId = ++pairingAttemptSequence;
     waConnectionState = "connecting";
-    console.log("✅ Socket do WhatsApp criado; aguardando QR ou conexão...");
+    console.log("✅ Socket do WhatsApp criado; tentativa=" + pairingAttemptId + "; aguardando QR ou conexão...");
     let credsSaveChain = Promise.resolve();
     const persistCredsUpdate = (update, reason) => {
       credsSaveChain = credsSaveChain.catch(() => undefined).then(async () => {
@@ -453,7 +455,7 @@ async function startMalvin() {
       pairingRequested = false;
       pairingRequestInFlight = false;
       pairingRequestAttempts = 0;
-      pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null };
+      pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null, attemptId: pairingAttemptId };
       qrState = { value: null, generatedAt: 0, expiresAt: 0 };
       try {
         await credsSaveChain;
@@ -582,12 +584,20 @@ async function startMalvin() {
         requestPairingCode().catch(error => console.error("[PAIRING] Falha na tentativa controlada: " + safeErrorText(error)));
       }, delay);
     };
+    if (Malvin.ws?.on) {
+      Malvin.ws.on("open", () => {
+        if (activeSocket === Malvin && shouldRequestPairingCode) {
+          console.log("[PAIRING] Transporte WebSocket aberto; tentativa=" + pairingAttemptId);
+          schedulePairingCodeRequest(1000);
+        }
+      });
+    }
     const requestPairingCode = async () => {
       if (pairingRequested || pairingRequestInFlight || pairingRequestAttempts >= 5) return;
       pairingRequestInFlight = true;
       pairingRequestAttempts += 1;
-      pairingCodeState = { code: null, expiresAt: 0, used: false, status: "solicitando", error: null };
-      console.log("🔐 Iniciando pareamento: número configurado=" + (pairingNumber ? "sim" : "não") + ", método disponível=" + (typeof Malvin.requestPairingCode === "function" ? "sim" : "não"));
+      pairingCodeState = { code: null, expiresAt: 0, used: false, status: "solicitando", error: null, attemptId: pairingAttemptId };
+      console.log("🔐 Iniciando pareamento: tentativa=" + pairingAttemptId + ", número configurado=" + (pairingNumber ? "sim" : "não") + ", método disponível=" + (typeof Malvin.requestPairingCode === "function" ? "sim" : "não"));
       if (!shouldRequestPairingCode || typeof Malvin.requestPairingCode !== "function") {
         pairingCodeState.status = "erro";
         pairingCodeState.error = "O método de pareamento não está disponível nesta versão do adaptador.";
@@ -600,17 +610,26 @@ async function startMalvin() {
         // Um atraso curto deixa o transporte iniciar sem criar uma dependência circular.
         await new Promise(resolve => setTimeout(resolve, 3000));
         console.log("🔗 Transporte iniciado; solicitando código sem bloquear em waitForSocketOpen.");
+        if (activeSocket !== Malvin || Malvin.ws?.isClosed || Malvin.ws?.isClosing || !Malvin.ws?.isOpen) {
+          throw new Error("socket de pareamento não está ativo");
+        }
+        console.log("[PAIRING] Solicitando código ao WhatsApp: tentativa=" + pairingAttemptId);
         const pairingCode = await Promise.race([
           Malvin.requestPairingCode(pairingNumber),
           new Promise((_, reject) => setTimeout(() => reject(new Error("tempo limite de 15 segundos aguardando resposta do WhatsApp")), 15000))
         ]);
+        if (activeSocket !== Malvin || pairingAttemptId !== pairingAttemptSequence) {
+          console.warn("[PAIRING] Código retornado por tentativa antiga; resultado descartado.");
+          return;
+        }
         pairingRequested = true;
         pairingRequestInFlight = false;
-        pairingCodeState = { code: String(pairingCode), expiresAt: Date.now() + 10 * 60 * 1000, used: false, status: "pronto", error: null };
-        console.log("\n🔐 Código de pareamento gerado e protegido no endpoint /pairing (não será impresso integralmente nos logs). Código mascarado: " + String(pairingCode).slice(0, 2) + "••••");
+        pairingCodeState = { code: String(pairingCode), expiresAt: Date.now() + 10 * 60 * 1000, used: false, status: "pronto", error: null, attemptId: pairingAttemptId };
+        console.log("\n🔐 Código de pareamento gerado: tentativa=" + pairingAttemptId + "; protegido no endpoint /pairing (não será impresso integralmente nos logs). Código mascarado: " + String(pairingCode).slice(0, 2) + "••••");
         console.log("No WhatsApp: Configurações > Aparelhos conectados > Conectar aparelho > Conectar com número de telefone.\n");
       } catch (pairingError) {
         pairingRequestInFlight = false;
+        if (pairingAttemptId !== pairingAttemptSequence || activeSocket !== Malvin) return;
         pairingCodeState.status = "erro";
         pairingCodeState.error = pairingError.message || "Falha desconhecida ao solicitar o código.";
         console.error("❌ Não foi possível gerar o código de pareamento:", pairingError.stack || pairingError.message);
@@ -669,6 +688,10 @@ async function startMalvin() {
         if (pairingRequestTimer) {
           clearTimeout(pairingRequestTimer);
           pairingRequestTimer = null;
+        }
+        if (pairingCodeState.attemptId === pairingAttemptSequence && pairingCodeState.status !== "registrado") {
+          pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: "A tentativa de pareamento foi encerrada; aguarde um novo código.", attemptId: pairingAttemptSequence };
+          console.warn("[PAIRING] Código invalidado porque o socket da tentativa foi encerrado.");
         }
         try {
           await credsSaveChain;
