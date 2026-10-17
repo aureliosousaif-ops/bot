@@ -109,6 +109,10 @@ const setupConnectionHandler = (
                     console.error("[WA-DIAG] Falha ao limpar socket encerrado:", error.message);
                 }
             }
+            if (callbacks.suppressReconnect?.()) {
+                console.log("[WA-DIAG] Reconexão padrão suprimida; fallback bruto 515 já iniciou o reinício.");
+                return;
+            }
             Malvin.ev?.removeAllListeners?.();
 
             let disconnectPayload = "";

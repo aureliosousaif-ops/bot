@@ -441,6 +441,46 @@ async function startMalvin() {
       });
       return credsSaveChain;
     };
+    let rawRestartInFlight = false;
+    const restartFromRaw515 = async () => {
+      if (rawRestartInFlight || activeSocket !== Malvin) return;
+      rawRestartInFlight = true;
+      try {
+        await credsSaveChain;
+        console.log("[WA-DIAG] stream:error 515 recebido; persistência concluída antes do fechamento direto.");
+      } catch (error) {
+        console.error("[WA-DIAG] stream:error 515 sem persistência segura; reinício cancelado: " + safeErrorText(error));
+        rawRestartInFlight = false;
+        return;
+      }
+      try {
+        Malvin.end(new Boom("restartRequired recebido no stream", { statusCode: 515 }));
+      } catch (error) {
+        console.error("[WA-DIAG] Falha ao fechar socket após stream:error 515: " + safeErrorText(error));
+      }
+      waConnectionState = "closed";
+      if (activeSocket === Malvin) activeSocket = null;
+      if (activeAuthClose) {
+        try {
+          await activeAuthClose();
+        } catch (error) {
+          console.error("[WA-DIAG] Falha ao fechar autenticação após stream:error 515: " + safeErrorText(error));
+        }
+        activeAuthClose = null;
+      }
+      store?.destroy();
+      setTimeout(() => {
+        rawRestartInFlight = false;
+        startMalvin().catch(error => console.error("[WA-DIAG] Falha no reinício direto após 515: " + safeErrorText(error)));
+      }, 5000);
+    };
+    if (Malvin.ws?.on) {
+      Malvin.ws.on("CB:stream:error", node => {
+        const code = Number(node?.attrs?.code || 0);
+        console.log("[WA-DIAG] stream:error bruto code=" + String(code));
+        if (code === 515) restartFromRaw515().catch(error => console.error("[WA-DIAG] Fallback bruto 515 falhou: " + safeErrorText(error)));
+      });
+    }
     let connectionState = "created";
     let postPairingRestartTimer = null;
     const socketWatchdog = setTimeout(() => {
@@ -595,6 +635,7 @@ async function startMalvin() {
         }
         store?.destroy();
       },
+      suppressReconnect: () => rawRestartInFlight,
       onDeviceRemoved: async () => {
         if (authRecoveryStarted) return;
         authRecoveryStarted = true;
