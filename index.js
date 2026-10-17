@@ -202,7 +202,9 @@ let Malvin;
 let store;
 let pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null };
 let qrState = { value: null, generatedAt: 0, expiresAt: 0 };
-let activeAuthSessionId = config.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot";
+const primaryAuthSessionId = config.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot";
+const recoveryAuthSessionId = config.WHATSAPP_AUTH_RECOVERY_SESSION_ID || `${primaryAuthSessionId}-recovery`;
+let activeAuthSessionId = config.WHATSAPP_AUTH_RECOVERY ? recoveryAuthSessionId : primaryAuthSessionId;
 let authRecoveryStarted = false;
 let socketStartInFlight = false;
 let activeAuthClose = null;
@@ -541,8 +543,7 @@ async function startMalvin() {
       onDeviceRemoved: async () => {
         if (authRecoveryStarted) return;
         authRecoveryStarted = true;
-        const baseSessionId = config.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot";
-        activeAuthSessionId = `${baseSessionId}-recovery-${Date.now()}`;
+        activeAuthSessionId = recoveryAuthSessionId;
         qrState = { value: null, generatedAt: 0, expiresAt: 0 };
         pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null };
         console.warn("[PAIRING] Sessão principal preservada; iniciando sessão PostgreSQL isolada para novo pareamento.");
