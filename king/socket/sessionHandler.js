@@ -111,6 +111,25 @@ const setupConnectionHandler = (
             }
             Malvin.ev?.removeAllListeners?.();
 
+            let disconnectPayload = "";
+            try {
+                disconnectPayload = JSON.stringify(disconnectError);
+            } catch (_) {}
+            const disconnectMarker = [
+                disconnectError?.data?.reason,
+                disconnectError?.data?.status,
+                disconnectError?.data?.type,
+                reasonText,
+                disconnectPayload,
+            ].filter(Boolean).join(" ").toLowerCase();
+            if (disconnectMarker.includes("device_removed") || disconnectMarker.includes("device removed")) {
+                console.error("Sessão rejeitada pelo WhatsApp como dispositivo removido; reconexão com as mesmas credenciais interrompida.");
+                if (callbacks.onDeviceRemoved) {
+                    await callbacks.onDeviceRemoved();
+                }
+                return;
+            }
+
             const handleReconnect = () => {
                 if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
                     const cooldown = 600000;

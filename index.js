@@ -202,6 +202,8 @@ let Malvin;
 let store;
 let pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null };
 let qrState = { value: null, generatedAt: 0, expiresAt: 0 };
+let activeAuthSessionId = config.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot";
+let authRecoveryStarted = false;
 let socketStartInFlight = false;
 let activeAuthClose = null;
 let activeSocket = null;
@@ -254,7 +256,10 @@ app.get("/qr", async (req, res) => {
   if (config.PUBLIC_QR || req.query?.token) {
     if (!config.PUBLIC_QR && !pairingTokenIsValid(pairingTokenFromRequest(req))) return res.status(401).json({ error: "Token inválido." });
     if (waConnectionState === "open") return res.status(200).json({ status: "connected", message: "WhatsApp já conectado; não é necessário escanear um QR Code." });
-    if (!qrState.value || Date.now() >= qrState.expiresAt) return res.status(410).json({ error: "QR indisponível ou expirado." });
+    if (!qrState.value || Date.now() >= qrState.expiresAt) {
+      res.set("Retry-After", "3");
+      return res.status(202).json({ status: "waiting_for_qr", whatsapp: waConnectionState, message: "Aguardando um QR Code real do WhatsApp. Atualize em alguns segundos." });
+    }
     try {
       const imageDataUrl = await qrcode.toDataURL(qrState.value, { errorCorrectionLevel: "M", margin: 2, width: 360 });
       const secondsLeft = Math.max(0, Math.ceil((qrState.expiresAt - Date.now()) / 1000));
@@ -270,7 +275,10 @@ app.post("/qr", async (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!config.PUBLIC_QR && !pairingTokenIsValid(pairingTokenFromRequest(req))) return res.status(401).json({ error: "Token inválido." });
   if (waConnectionState === "open") return res.status(200).json({ status: "connected", message: "WhatsApp já conectado; não é necessário escanear um QR Code." });
-  if (!qrState.value || Date.now() >= qrState.expiresAt) return res.status(410).json({ error: "QR indisponível ou expirado." });
+  if (!qrState.value || Date.now() >= qrState.expiresAt) {
+    res.set("Retry-After", "3");
+    return res.status(202).json({ status: "waiting_for_qr", whatsapp: waConnectionState, message: "Aguardando um QR Code real do WhatsApp. Atualize em alguns segundos." });
+  }
   try {
     const imageDataUrl = await qrcode.toDataURL(qrState.value, {
       errorCorrectionLevel: "M",
@@ -367,14 +375,14 @@ async function startMalvin() {
     }
     console.log(usePostgresAuth ? "🔄 Abrindo autenticação no Supabase/PostgreSQL..." : "🔄 Abrindo autenticação local...");
     const authState = usePostgresAuth
-      ? await usePostgresAuthState(config.WHATSAPP_AUTH_DATABASE_URL, config.WHATSAPP_AUTH_SESSION_ID)
+      ? await usePostgresAuthState(config.WHATSAPP_AUTH_DATABASE_URL, activeAuthSessionId)
       : await useSQLiteAuthState(cleanVar0082);
     const {
       state: cleanVar0042,
       saveCreds: cleanVar0053
     } = authState;
     activeAuthClose = typeof authState.close === "function" ? authState.close : null;
-    console.log(usePostgresAuth ? "✅ Autenticação PostgreSQL aberta." : "✅ Autenticação local aberta.");
+    console.log(usePostgresAuth ? `✅ Autenticação PostgreSQL aberta (sessão lógica ${activeAuthSessionId === (config.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot") ? "principal" : "recuperação"}).` : "✅ Autenticação local aberta.");
     const pairingMarkerIncomplete = cleanVar0042.creds?.me?.name === "~" && cleanVar0042.creds?.registered !== true;
     const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || pairingMarkerIncomplete || cleanVar0042.creds?.registered === false;
     if (config.USE_PAIRING_CODE && pairingMarkerIncomplete) {
@@ -529,6 +537,18 @@ async function startMalvin() {
           activeAuthClose = null;
         }
         store?.destroy();
+      },
+      onDeviceRemoved: async () => {
+        if (authRecoveryStarted) return;
+        authRecoveryStarted = true;
+        const baseSessionId = config.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot";
+        activeAuthSessionId = `${baseSessionId}-recovery-${Date.now()}`;
+        qrState = { value: null, generatedAt: 0, expiresAt: 0 };
+        pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null };
+        console.warn("[PAIRING] Sessão principal preservada; iniciando sessão PostgreSQL isolada para novo pareamento.");
+        setTimeout(() => {
+          startMalvin().catch((error) => console.error("[PAIRING] Falha ao iniciar sessão de recuperação:", safeErrorText(error)));
+        }, 1000);
       },
       onOpen: async cleanVar0160 => {
         const cleanVar0235 = await getAllSettings();
