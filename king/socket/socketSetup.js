@@ -8,7 +8,10 @@ const _userDevicesCache = new NodeCache({ stdTTL: 1800, useClones: false });
 const createSocketConfig = (version, state, logger) => {
     return {
         version,
-        logger: pino({ level: process.env.DEBUG_WHATSAPP === 'true' ? 'info' : 'silent' }),
+        // O logger info do Baileys serializa histórico e payloads criptográficos; em Render
+        // isso aumenta o heap e pode expor dados sensíveis. Os diagnósticos sanitizados
+        // da aplicação continuam ativos em index.js.
+        logger: pino({ level: process.env.DEBUG_WHATSAPP === 'true' ? 'warn' : 'silent' }),
         // Perfil oficial recomendado pelo Baileys para Ubuntu/Chrome.
         browser: ['Ubuntu', 'Chrome', '22.04.4'],
         auth: {

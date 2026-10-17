@@ -383,6 +383,10 @@ async function startMalvin() {
       state: cleanVar0042,
       saveCreds: cleanVar0053
     } = authState;
+    if (usePostgresAuth && activeAuthSessionId === recoveryAuthSessionId && !cleanVar0042.creds?.accountSyncCounter) {
+      cleanVar0042.creds.accountSyncCounter = 1;
+      console.warn("[WA-DIAG] Bootstrap inicial do App State desativado na sessão de recuperação; mensagens novas continuam habilitadas.");
+    }
     activeAuthClose = typeof authState.close === "function" ? authState.close : null;
     console.log(usePostgresAuth ? `✅ Autenticação PostgreSQL aberta (sessão lógica ${activeAuthSessionId === (config.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot") ? "principal" : "recuperação"}).` : "✅ Autenticação local aberta.");
     const pairingMarkerIncomplete = cleanVar0042.creds?.me?.name === "~" && cleanVar0042.creds?.registered !== true;
