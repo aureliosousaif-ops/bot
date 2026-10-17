@@ -391,6 +391,11 @@ async function startMalvin() {
     console.log(usePostgresAuth ? `✅ Autenticação PostgreSQL aberta (sessão lógica ${activeAuthSessionId === (config.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot") ? "principal" : "recuperação"}).` : "✅ Autenticação local aberta.");
     const pairingMarkerIncomplete = cleanVar0042.creds?.me?.name === "~" && cleanVar0042.creds?.registered !== true;
     const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || pairingMarkerIncomplete || cleanVar0042.creds?.registered === false;
+    if (usePostgresAuth && activeAuthSessionId === recoveryAuthSessionId && cleanVar0042.creds?.registered === true && !cleanVar0042.creds?.me?.id) {
+      cleanVar0042.creds.registered = false;
+      await cleanVar0053();
+      console.warn("[PAIRING] Sessão de recuperação estava marcada como registrada sem creds.me; estado corrigido para permitir QR real, sem apagar chaves.");
+    }
     if (config.USE_PAIRING_CODE && pairingMarkerIncomplete) {
       console.warn("[PAIRING] Marcador de pareamento incompleto encontrado; limpando apenas creds.me/pairingCode para iniciar registro, sem apagar a sessão.");
       delete cleanVar0042.creds.me;
@@ -445,9 +450,13 @@ async function startMalvin() {
       if (update?.qr) {
         const generatedAt = Date.now();
         qrState = { value: update.qr, generatedAt, expiresAt: generatedAt + 60000 };
-        if (DEBUG_WHATSAPP) console.log("[WA-DIAG] QR atualizado; expira em 60s e está disponível em POST /qr com token.");
-      } else if (update?.connection === "open" || update?.connection === "close") {
+        console.log("[WA-DIAG] QR real recebido; expira em 60s e está disponível em POST /qr com token.");
+      } else if (update?.connection === "open") {
         qrState = { value: null, generatedAt: 0, expiresAt: 0 };
+      } else if (update?.connection === "close" && qrState.value && Date.now() < qrState.expiresAt) {
+        // Não apagar um QR recém-emitido em um fechamento transitório; /qr continua
+        // disponível até a expiração natural, sem reutilizar QR antigo.
+        if (DEBUG_WHATSAPP) console.log("[WA-DIAG] Socket fechado; mantendo o QR atual até expirar.");
       }
     });
     Malvin.ev.on("creds.update", update => {
