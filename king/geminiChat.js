@@ -8,6 +8,8 @@ const inFlight = new Set();
 const MAX_HISTORY = 8;
 const MAX_MESSAGE_CHARS = 1200;
 const MAX_OUTPUT_TOKENS = 220;
+const MAX_CONVERSATIONS = 1000;
+const MAX_REQUEST_WINDOWS = 5000;
 const WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 8;
 const MIN_DELAY_MS = 3500;
@@ -68,6 +70,9 @@ function canRequest(key) {
   window.count += 1;
   window.lastAt = now;
   requestWindows.set(key, window);
+  while (requestWindows.size > MAX_REQUEST_WINDOWS) {
+    requestWindows.delete(requestWindows.keys().next().value);
+  }
   return true;
 }
 
@@ -143,6 +148,9 @@ async function generateReply({ message, text }) {
       : await callGemini(config, contents);
     if (!reply) return null;
     conversations.set(key, [...contents, { role: 'assistant', text: reply }].slice(-MAX_HISTORY));
+    while (conversations.size > MAX_CONVERSATIONS) {
+      conversations.delete(conversations.keys().next().value);
+    }
     return reply.slice(0, 3500);
   } finally {
     inFlight.delete(key);
