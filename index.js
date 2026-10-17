@@ -433,6 +433,14 @@ async function startMalvin() {
     activeSocket = Malvin;
     waConnectionState = "connecting";
     console.log("✅ Socket do WhatsApp criado; aguardando QR ou conexão...");
+    let credsSaveChain = Promise.resolve();
+    const persistCredsUpdate = (update, reason) => {
+      credsSaveChain = credsSaveChain.catch(() => undefined).then(async () => {
+        await cleanVar0053();
+        console.log("[WA-DIAG] creds.update persistido: motivo=" + reason + ", registered=" + String(cleanVar0042.creds?.registered === true) + ", hasMe=" + String(Boolean(cleanVar0042.creds?.me?.id)));
+      });
+      return credsSaveChain;
+    };
     let connectionState = "created";
     let postPairingRestartTimer = null;
     const socketWatchdog = setTimeout(() => {
@@ -446,28 +454,28 @@ async function startMalvin() {
       if (update?.isNewLogin) {
         console.log("[WA-DIAG] Pareamento aceito; aguardando reinício controlado do socket.");
         if (postPairingRestartTimer) clearTimeout(postPairingRestartTimer);
-        postPairingRestartTimer = setTimeout(() => {
+        postPairingRestartTimer = setTimeout(async () => {
           if (connectionState === "open" || activeSocket !== Malvin) return;
           console.warn("[WA-DIAG] Socket permaneceu em " + connectionState + " após pareamento; solicitando restartRequired controlado.");
           try {
+            await credsSaveChain;
+            console.log("[WA-DIAG] Persistência pós-pareamento concluída antes do restartRequired.");
             Malvin.end(new Boom("restartRequired após pareamento", { statusCode: 515 }));
           } catch (error) {
-            console.error("[WA-DIAG] Falha ao solicitar reinício pós-pareamento: " + safeErrorText(error));
+            console.error("[WA-DIAG] Persistência pós-pareamento falhou; socket não será reiniciado: " + safeErrorText(error));
           }
         }, 15000);
       }
-      if (DEBUG_WHATSAPP) {
-        const details = {
-          connection: update?.connection || null,
-          hasQr: Boolean(update?.qr),
-          isNewLogin: Boolean(update?.isNewLogin),
-          registered: cleanVar0042.creds?.registered === true,
-          receivedPendingNotifications: Boolean(update?.receivedPendingNotifications),
-          hasDisconnectError: Boolean(update?.lastDisconnect?.error)
-        };
-        console.log("[WA-DIAG] connection.update=" + JSON.stringify(details));
-        if (update?.lastDisconnect?.error) console.error("[WA-DIAG] desconexão=" + safeDisconnectDetails(update.lastDisconnect.error));
-      }
+      const details = {
+        connection: update?.connection || null,
+        hasQr: Boolean(update?.qr),
+        isNewLogin: Boolean(update?.isNewLogin),
+        registered: cleanVar0042.creds?.registered === true,
+        receivedPendingNotifications: Boolean(update?.receivedPendingNotifications),
+        hasDisconnectError: Boolean(update?.lastDisconnect?.error)
+      };
+      console.log("[WA-DIAG] connection.update=" + JSON.stringify(details));
+      if (update?.lastDisconnect?.error) console.error("[WA-DIAG] desconexão=" + safeDisconnectDetails(update.lastDisconnect.error));
       if (update?.connection === "open") {
         clearTimeout(socketWatchdog);
         if (postPairingRestartTimer) {
@@ -488,7 +496,7 @@ async function startMalvin() {
       }
     });
     Malvin.ev.on("creds.update", update => {
-      if (DEBUG_WHATSAPP) console.log("[WA-DIAG] creds.update recebido: campos=" + Object.keys(update || {}).join(",") + ", registered=" + String(update?.registered ?? cleanVar0042.creds?.registered ?? "desconhecido") + ", hasMe=" + String(Boolean(update?.me || cleanVar0042.creds?.me)));
+      console.log("[WA-DIAG] creds.update recebido: registered=" + String(update?.registered ?? cleanVar0042.creds?.registered ?? "desconhecido") + ", hasMe=" + String(Boolean(update?.me || cleanVar0042.creds?.me)));
     });
     const pairingNumber = String(config.PAIRING_NUMBER || "").replace(/\D/g, "");
     const shouldRequestPairingCode = config.USE_PAIRING_CODE && pairingNumber && pairingSessionIncomplete && (config.FORCE_PAIRING_CODE || cleanVar0042.creds?.registered !== true);
@@ -545,8 +553,8 @@ async function startMalvin() {
     store.bind(Malvin.ev);
     Malvin.ev.process(async cleanVar0190 => {
       if (cleanVar0190["creds.update"]) {
-        await cleanVar0053();
         const updatedCreds = cleanVar0190["creds.update"];
+        await persistCredsUpdate(updatedCreds, "process");
         if (updatedCreds?.registered === true) {
           pairingCodeState.status = "registrado";
           pairingCodeState.error = null;
@@ -575,6 +583,12 @@ async function startMalvin() {
       onClose: async cleanVar0160 => {
         waConnectionState = "closed";
         if (cleanVar0160 === activeSocket) activeSocket = null;
+        try {
+          await credsSaveChain;
+          console.log("[WA-DIAG] Fila de creds concluída antes do fechamento do socket.");
+        } catch (error) {
+          console.error("[WA-DIAG] Fila de creds falhou antes do fechamento: " + safeErrorText(error));
+        }
         if (activeAuthClose) {
           await activeAuthClose();
           activeAuthClose = null;
