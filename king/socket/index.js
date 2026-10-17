@@ -7,7 +7,8 @@ const {
     setupGroupCacheListeners,
     cachedGroupMetadata,
     initializeLidStore,
-    getLidMapping
+    getLidMapping,
+    getCacheStats
 } = require('./groupStore');
 
 const { createSocketConfig } = require('./socketSetup');
@@ -51,5 +52,6 @@ module.exports = {
     setupGroupEventsListeners,
     getProfilePic,
     getDisplayNumber,
-    getLidMapping
+    getLidMapping,
+    getCacheStats
 };

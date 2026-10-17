@@ -11,10 +11,21 @@ const lidToJidStore = new NodeCache({
     useClones: false,
     checkperiod: 300,
 });
+const MAX_GROUP_CACHE_KEYS = 500;
+const MAX_LID_CACHE_KEYS = 20000;
+
+const trimCache = (cache, maxKeys) => {
+    const keys = cache.keys();
+    if (keys.length <= maxKeys) return;
+    for (const key of keys.slice(0, keys.length - maxKeys)) {
+        cache.del(key);
+    }
+};
 
 const storeLidMapping = (lid, jid) => {
     if (lid && jid && lid.endsWith("@lid") && jid.endsWith("@s.whatsapp.net")) {
         lidToJidStore.set(lid, jid);
+        trimCache(lidToJidStore, MAX_LID_CACHE_KEYS);
     }
 };
 
@@ -73,6 +84,7 @@ const getGroupMetadata = async (Malvin, jid) => {
 const updateGroupCache = (jid, metadata) => {
     if (jid && metadata) {
         groupCache.set(jid, metadata);
+        trimCache(groupCache, MAX_GROUP_CACHE_KEYS);
         updateLidMappingsFromMetadata(metadata);
     }
 };
@@ -135,7 +147,7 @@ const initializeLidStore = async (Malvin) => {
                 const meta = groups[groupJid];
                 if (meta?.participants) {
                     updateLidMappingsFromMetadata(meta);
-                    groupCache.set(groupJid, meta);
+                    updateGroupCache(groupJid, meta);
                 }
             }
             console.log(
@@ -146,6 +158,11 @@ const initializeLidStore = async (Malvin) => {
         console.error("Failed to initialize LID store:", error.message);
     }
 };
+
+const getCacheStats = () => ({
+    groups: groupCache.keys().length,
+    lids: lidToJidStore.keys().length,
+});
 
 module.exports = {
     groupCache,
@@ -159,4 +176,5 @@ module.exports = {
     storeLidMapping,
     updateLidMappingsFromMetadata,
     initializeLidStore,
+    getCacheStats,
 };

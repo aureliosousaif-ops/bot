@@ -160,19 +160,26 @@ class SQLiteStore {
     }
 
     bind(ev) {
+        if (this._eventEmitter && this._handler) {
+            this._eventEmitter.off('messages.upsert', this._handler);
+        }
+        this._eventEmitter = ev;
         this._handler = ({ messages }) => {
-            setImmediate(() => {
-                for (const msg of messages) {
-                    if (msg.key?.remoteJid && msg.key?.id) {
-                        this.saveMessage(msg.key.remoteJid, msg);
-                    }
+            for (const msg of messages || []) {
+                if (msg.key?.remoteJid && msg.key?.id) {
+                    this.saveMessage(msg.key.remoteJid, msg);
                 }
-            });
+            }
         };
         ev.on('messages.upsert', this._handler);
     }
 
     destroy() {
+        if (this._eventEmitter && this._handler) {
+            this._eventEmitter.off('messages.upsert', this._handler);
+        }
+        this._eventEmitter = null;
+        this._handler = null;
     }
 }
 
