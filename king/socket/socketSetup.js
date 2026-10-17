@@ -20,9 +20,7 @@ const createSocketConfig = (version, state, logger) => {
         connectTimeoutMs: 15000,
         defaultQueryTimeoutMs: 20000,
         keepAliveIntervalMs: 20000,
-        // As consultas automáticas de inicialização fazem o Baileys acumular
-        // respostas no Render e expirarem em executeInitQueries. O bot busca
-        // metadados de grupo sob demanda, portanto não precisa desse histórico.
+        // Consultas de inicializacao desativadas para reduzir o uso de memoria.
         fireInitQueries: false,
         markOnlineOnConnect: true,
         syncFullHistory: false,

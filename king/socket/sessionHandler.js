@@ -79,6 +79,8 @@ const setupConnectionHandler = (
         }
 
         if (connection === "open") {
+            const startupOpenedAt = Date.now();
+            console.log("[STARTUP] Evento connection.update recebido: open");
             console.log("✅ Connection Instance is Online");
             reconnectAttempts = 0;
             if (reconnectTimer) {
@@ -87,7 +89,9 @@ const setupConnectionHandler = (
             }
 
             if (callbacks.onOpen) {
+                console.log("[STARTUP] Inicialização da aplicação iniciada");
                 await callbacks.onOpen(Malvin);
+                console.log(`[STARTUP] Inicialização da aplicação concluída em ${Date.now() - startupOpenedAt}ms`);
             }
         }
 
