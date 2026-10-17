@@ -661,6 +661,7 @@ function isIdentityQuestion(_0x1ade9c) {
   return identityPatterns.some(_0x328fcf => typeof _0x1ade9c === "string" && _0x328fcf.test(_0x1ade9c));
 }
 const aiSessionCache = new Map();
+const MAX_AI_SESSIONS = 1000;
 async function getAIResponse(_0x4905ff, _0x5c972d = null) {
   if (isIdentityQuestion(_0x4905ff)) {
     return "I am an Interactive Ai Assistant Chat Bot, created by Malvin Tech!";
@@ -691,6 +692,9 @@ async function getAIResponse(_0x4905ff, _0x5c972d = null) {
     const _0x394a77 = _0x1ccb6d.data?.data !== undefined ? _0x1ccb6d.data.data : _0x1ccb6d.data;
     if (_0x5c972d && _0x394a77?.session_id) {
       aiSessionCache.set(_0x5c972d, _0x394a77.session_id);
+      while (aiSessionCache.size > MAX_AI_SESSIONS) {
+        aiSessionCache.delete(aiSessionCache.keys().next().value);
+      }
     }
     const _0x4420a0 = _0x394a77?.result;
     if (!_0x4420a0) {

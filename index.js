@@ -298,12 +298,19 @@ setInterval(async () => {
     await runNotifications(global.MalvinBot, global.botId).catch(cleanVar0018 => console.error("[Notifications]", cleanVar0018.message));
   }
 }, 1800000);
-memoryTelemetryTimer = setInterval(() => {
-  const usage = process.memoryUsage();
-  const listeners = activeSocket?.ev;
-  const cache = getCacheStats();
-  console.log(`[MEMORY] heap=${Math.round(usage.heapUsed / 1048576)}MB/${Math.round(usage.heapTotal / 1048576)}MB rss=${Math.round(usage.rss / 1048576)}MB groups=${cache.groups} lids=${cache.lids} listeners=${listeners ? listeners.listenerCount?.("messages.upsert") || 0 : 0}`);
-}, 60000);
+const emitMemoryTelemetry = () => {
+  try {
+    const usage = process.memoryUsage();
+    const listeners = activeSocket?.ev;
+    const cache = typeof getCacheStats === "function" ? getCacheStats() : {};
+    const mb = (value) => Math.round(Number(value || 0) / 1048576);
+    console.log(`[MEMORY] heap=${mb(usage.heapUsed)}/${mb(usage.heapTotal)}MB rss=${mb(usage.rss)}MB external=${mb(usage.external)}MB arrayBuffers=${mb(usage.arrayBuffers)}MB uptime=${Math.round(process.uptime())}s groups=${cache.groups ?? "unavailable"} lids=${cache.lids ?? "unavailable"} listeners=${listeners?.listenerCount?.("messages.upsert") || 0} sockets=${activeSocket ? 1 : 0}`);
+  } catch (error) {
+    console.error(`[MEMORY] telemetry error: ${safeErrorText(error)}`);
+  }
+};
+emitMemoryTelemetry();
+memoryTelemetryTimer = setInterval(emitMemoryTelemetry, 30000);
 if (typeof memoryTelemetryTimer.unref === "function") memoryTelemetryTimer.unref();
 const sessionDir = process.env.SESSION_DIR || path.join(__dirname, "king", "session");
 const pluginsPath = path.join(__dirname, "malvin");
