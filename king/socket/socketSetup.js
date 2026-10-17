@@ -6,6 +6,7 @@ const { cachedGroupMetadata } = require('./groupStore');
 const _userDevicesCache = new NodeCache({ stdTTL: 1800, useClones: false });
 
 const createSocketConfig = (version, state, logger) => {
+    const pairingNeedsInitQueries = !state?.creds?.me?.id || state?.creds?.registered !== true;
     return {
         version,
         // O logger info do Baileys serializa histórico e payloads criptográficos; em Render
@@ -27,8 +28,9 @@ const createSocketConfig = (version, state, logger) => {
         // Sem esta opção, o Baileys reduz os QR seguintes para 20s enquanto a
         // página ainda os apresenta como válidos por até 60s.
         qrTimeout: 60000,
-        // Consultas de inicializacao desativadas para reduzir o uso de memoria.
-        fireInitQueries: false,
+        // A versão funcional usava init queries durante o pareamento. Depois
+        // que a sessão está autenticada, mantemos false para evitar OOM no Render.
+        fireInitQueries: pairingNeedsInitQueries,
         markOnlineOnConnect: true,
         syncFullHistory: false,
         shouldSyncHistoryMessage: () => false,
