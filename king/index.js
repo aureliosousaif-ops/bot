@@ -17,7 +17,7 @@ const { toAudio, toVideo, toPtt, formatVideo, formatAudio, monospace, runtime, s
 
 const { 
     groupCache, getGroupMetadata, updateGroupCache, deleteGroupCache, clearGroupCache, 
-    setupGroupCacheListeners, cachedGroupMetadata, initializeLidStore, createSocketConfig, getLidMapping,
+    setupGroupCacheListeners, cachedGroupMetadata, initializeLidStore, createSocketConfig, getLidMapping, getCacheStats,
     safeNewsletterFollow, safeGroupAcceptInvite, setupConnectionHandler,
     standardizeJid, serializeMessage, downloadMediaMessage,
     loadPlugins, findCommand, findBodyCommand, createHelpers, getGroupInfo, buildSuperUsers,
@@ -43,7 +43,7 @@ module.exports = {
     standardizeJid, serializeMessage, downloadMediaMessage,
     loadPlugins, findCommand, findBodyCommand, createHelpers, getGroupInfo, buildSuperUsers,
     groupCache, getGroupMetadata, updateGroupCache, deleteGroupCache, clearGroupCache, 
-    setupGroupCacheListeners, cachedGroupMetadata, initializeLidStore, createSocketConfig, getLidMapping,
+    setupGroupCacheListeners, cachedGroupMetadata, initializeLidStore, createSocketConfig, getLidMapping, getCacheStats,
     safeNewsletterFollow, safeGroupAcceptInvite, setupConnectionHandler,
     setupGroupEventsListeners, getProfilePic, getDisplayNumber,
     runFFmpeg, getVideoDuration, mxdSticker, copyFolderSync,

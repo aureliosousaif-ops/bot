@@ -33,10 +33,12 @@ module.exports = {
     ENABLE_RPG: process.env.ENABLE_RPG === "true",
 };
 
-let fileName = require.resolve(__filename);
-fs.watchFile(fileName, () => {
-    fs.unwatchFile(fileName);
-    console.log(`Writing File: ${__filename}`);
-    delete require.cache[fileName];
-    require(fileName);
-});
+if (process.env.WATCH_CONFIG === "true") {
+    const fileName = require.resolve(__filename);
+    fs.watchFile(fileName, { interval: 5000 }, () => {
+        fs.unwatchFile(fileName);
+        console.log(`Writing File: ${__filename}`);
+        delete require.cache[fileName];
+        require(fileName);
+    });
+}
