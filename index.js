@@ -391,6 +391,7 @@ async function startMalvin() {
     console.log(usePostgresAuth ? `✅ Autenticação PostgreSQL aberta (sessão lógica ${activeAuthSessionId === (config.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot") ? "principal" : "recuperação"}).` : "✅ Autenticação local aberta.");
     const pairingMarkerIncomplete = cleanVar0042.creds?.me?.name === "~" && cleanVar0042.creds?.registered !== true;
     const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || pairingMarkerIncomplete || cleanVar0042.creds?.registered === false;
+    console.log("[WA-DIAG] Estado da sessão: registered=" + String(cleanVar0042.creds?.registered === true) + ", hasMe=" + String(Boolean(cleanVar0042.creds?.me?.id)) + ", incomplete=" + String(pairingSessionIncomplete) + ", lógica=" + (activeAuthSessionId === recoveryAuthSessionId ? "recuperação" : "principal"));
     if (usePostgresAuth && activeAuthSessionId === recoveryAuthSessionId && cleanVar0042.creds?.registered === true && !cleanVar0042.creds?.me?.id) {
       cleanVar0042.creds.registered = false;
       await cleanVar0053();
