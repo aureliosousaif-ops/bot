@@ -561,15 +561,28 @@ async function startMalvin() {
     const pairingNumber = String(config.PAIRING_NUMBER || "").replace(/\D/g, "");
     const shouldRequestPairingCode = config.USE_PAIRING_CODE && pairingNumber && pairingSessionIncomplete && (config.FORCE_PAIRING_CODE || cleanVar0042.creds?.registered !== true);
     let pairingRequested = false;
+    let pairingRequestInFlight = false;
+    let pairingRequestAttempts = 0;
+    let pairingRequestTimer = null;
+    const schedulePairingCodeRequest = (delay = 1500) => {
+      if (!shouldRequestPairingCode || pairingRequested || pairingRequestInFlight || pairingRequestAttempts >= 5) return;
+      if (pairingRequestTimer) clearTimeout(pairingRequestTimer);
+      pairingRequestTimer = setTimeout(() => {
+        pairingRequestTimer = null;
+        requestPairingCode().catch(error => console.error("[PAIRING] Falha na tentativa controlada: " + safeErrorText(error)));
+      }, delay);
+    };
     const requestPairingCode = async () => {
-      if (pairingRequested) return;
-      pairingRequested = true;
+      if (pairingRequested || pairingRequestInFlight || pairingRequestAttempts >= 5) return;
+      pairingRequestInFlight = true;
+      pairingRequestAttempts += 1;
       pairingCodeState = { code: null, expiresAt: 0, used: false, status: "solicitando", error: null };
       console.log("🔐 Iniciando pareamento: número configurado=" + (pairingNumber ? "sim" : "não") + ", método disponível=" + (typeof Malvin.requestPairingCode === "function" ? "sim" : "não"));
       if (!shouldRequestPairingCode || typeof Malvin.requestPairingCode !== "function") {
         pairingCodeState.status = "erro";
         pairingCodeState.error = "O método de pareamento não está disponível nesta versão do adaptador.";
         console.error("❌ Pareamento não iniciado. Verifique USE_PAIRING_CODE, FORCE_PAIRING_CODE, PAIRING_NUMBER e a versão do Baileys.");
+        pairingRequestInFlight = false;
         return;
       }
       try {
@@ -588,19 +601,23 @@ async function startMalvin() {
           Malvin.requestPairingCode(pairingNumber),
           new Promise((_, reject) => setTimeout(() => reject(new Error("tempo limite de 15 segundos aguardando resposta do WhatsApp")), 15000))
         ]);
+        pairingRequested = true;
+        pairingRequestInFlight = false;
         pairingCodeState = { code: String(pairingCode), expiresAt: Date.now() + 10 * 60 * 1000, used: false, status: "pronto", error: null };
         console.log("\n🔐 Código de pareamento gerado e protegido no endpoint /pairing (não será impresso integralmente nos logs). Código mascarado: " + String(pairingCode).slice(0, 2) + "••••");
         console.log("No WhatsApp: Configurações > Aparelhos conectados > Conectar aparelho > Conectar com número de telefone.\n");
       } catch (pairingError) {
+        pairingRequestInFlight = false;
         pairingCodeState.status = "erro";
         pairingCodeState.error = pairingError.message || "Falha desconhecida ao solicitar o código.";
         console.error("❌ Não foi possível gerar o código de pareamento:", pairingError.stack || pairingError.message);
+        schedulePairingCodeRequest(10000);
       }
     };
     Malvin.ev.on("connection.update", update => {
       if (update?.connection === "connecting" && shouldRequestPairingCode) {
         console.log("🔗 Evento inicial de conexão recebido; aguardando o transporte WebSocket real...");
-        setTimeout(requestPairingCode, 500);
+        schedulePairingCodeRequest(500);
       }
       if (update?.connection === "close" && update.lastDisconnect?.error) {
         const closeError = update.lastDisconnect.error;
@@ -610,6 +627,9 @@ async function startMalvin() {
     if (shouldRequestPairingCode || config.USE_PAIRING_CODE) {
       console.log("🔧 Pareamento configurado: ativado=" + (config.USE_PAIRING_CODE ? "sim" : "não") + ", forçado=" + (config.FORCE_PAIRING_CODE ? "sim" : "não") + ", número=" + (pairingNumber ? "válido" : "ausente"));
     }
+    // O primeiro evento connecting pode ser emitido antes deste listener.
+    // Agendar uma tentativa também garante que /pairing não fique preso em aguardando.
+    schedulePairingCodeRequest(2000);
     store.bind(Malvin.ev);
     Malvin.ev.process(async cleanVar0190 => {
       if (cleanVar0190["creds.update"]) {
