@@ -482,7 +482,26 @@ async function startMalvin() {
       });
     }
     let connectionState = "created";
+    let socketHealthTimer = null;
     let postPairingRestartTimer = null;
+    const stopSocketHealthTimer = () => {
+      if (socketHealthTimer) {
+        clearInterval(socketHealthTimer);
+        socketHealthTimer = null;
+      }
+    };
+    socketHealthTimer = setInterval(() => {
+      if (connectionState === "open" || activeSocket !== Malvin) {
+        stopSocketHealthTimer();
+        return;
+      }
+      const ws = Malvin.ws;
+      if (ws?.isClosed || ws?.isClosing) {
+        console.warn("[WA-DIAG] WebSocket fechado sem connection.update; iniciando recuperação controlada.");
+        restartFromRaw515().catch(error => console.error("[WA-DIAG] Monitor do WebSocket falhou: " + safeErrorText(error)));
+      }
+    }, 10000);
+    if (typeof socketHealthTimer.unref === "function") socketHealthTimer.unref();
     const socketWatchdog = setTimeout(() => {
       if (connectionState !== "open") {
         console.error("[WA-DIAG] Sem avanço do socket após 20s: estado=" + connectionState + ". Possível falha de DNS, TLS, WebSocket ou versão incompatível.");
@@ -518,6 +537,7 @@ async function startMalvin() {
       if (update?.lastDisconnect?.error) console.error("[WA-DIAG] desconexão=" + safeDisconnectDetails(update.lastDisconnect.error));
       if (update?.connection === "open") {
         clearTimeout(socketWatchdog);
+        stopSocketHealthTimer();
         if (postPairingRestartTimer) {
           clearTimeout(postPairingRestartTimer);
           postPairingRestartTimer = null;

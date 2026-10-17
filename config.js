@@ -23,7 +23,9 @@ module.exports = {
     WHATSAPP_AUTH_STORAGE: process.env.WHATSAPP_AUTH_STORAGE || (process.env.WHATSAPP_AUTH_DATABASE_URL || process.env.DATABASE_URL ? "postgres" : "sqlite"),
     WHATSAPP_AUTH_DATABASE_URL: process.env.WHATSAPP_AUTH_DATABASE_URL || process.env.DATABASE_URL,
     WHATSAPP_AUTH_SESSION_ID: process.env.WHATSAPP_AUTH_SESSION_ID || "sousinha-bot",
-    WHATSAPP_AUTH_RECOVERY: process.env.WHATSAPP_AUTH_RECOVERY !== "false",
+    // A sessão principal é o padrão; a recuperação só é usada após device_removed
+    // ou quando WHATSAPP_AUTH_RECOVERY=true for configurado explicitamente.
+    WHATSAPP_AUTH_RECOVERY: process.env.WHATSAPP_AUTH_RECOVERY === "true",
     WHATSAPP_AUTH_RECOVERY_SESSION_ID: process.env.WHATSAPP_AUTH_RECOVERY_SESSION_ID || "",
     MALVIN_API_KEY: process.env.MALVIN_API_KEY, // Get your free key at https://api.malvintech.co.zw (sign up, key is on your dashboard)
     GROQ_API_KEY: process.env.GROQ_API_KEY,
