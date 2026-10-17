@@ -109,6 +109,17 @@ const setupConnectionHandler = (
                     console.error("[WA-DIAG] Falha ao limpar socket encerrado:", error.message);
                 }
             }
+            if (reason === DisconnectReason.restartRequired) {
+                console.log("🔁 restartRequired (515): iniciando o fluxo dedicado de reinício e pareamento.");
+                if (callbacks.onRestartRequired) {
+                    try {
+                        await callbacks.onRestartRequired(Malvin);
+                    } catch (error) {
+                        console.error("[WA-DIAG] Falha no reinício dedicado do 515:", error.message);
+                    }
+                }
+                return;
+            }
             if (callbacks.suppressReconnect?.()) {
                 console.log("[WA-DIAG] Reconexão padrão suprimida; fallback bruto 515 já iniciou o reinício.");
                 return;
@@ -178,9 +189,6 @@ const setupConnectionHandler = (
                 case DisconnectReason.connectionClosed:
                 case DisconnectReason.connectionLost:
                 case DisconnectReason.restartRequired:
-                    if (reason === DisconnectReason.restartRequired) {
-                        console.log("🔁 restartRequired (515): possível pareamento concluído; reconectando sem apagar a sessão.");
-                    }
                     console.log("🕗 Reconnecting...");
                     handleReconnect();
                     break;

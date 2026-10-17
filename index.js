@@ -442,9 +442,19 @@ async function startMalvin() {
       return credsSaveChain;
     };
     let rawRestartInFlight = false;
-    const restartFromRaw515 = async () => {
-      if (rawRestartInFlight || activeSocket !== Malvin) return;
+    const restartFromRaw515 = async (allowClosedSocket = false) => {
+      if (rawRestartInFlight || (activeSocket !== Malvin && (!allowClosedSocket || activeSocket !== null))) return;
+      if (allowClosedSocket && activeSocket === null) activeSocket = Malvin;
       rawRestartInFlight = true;
+      if (pairingRequestTimer) {
+        clearTimeout(pairingRequestTimer);
+        pairingRequestTimer = null;
+      }
+      pairingRequested = false;
+      pairingRequestInFlight = false;
+      pairingRequestAttempts = 0;
+      pairingCodeState = { code: null, expiresAt: 0, used: false, status: "aguardando", error: null };
+      qrState = { value: null, generatedAt: 0, expiresAt: 0 };
       try {
         await credsSaveChain;
         console.log("[WA-DIAG] stream:error 515 recebido; persistência concluída antes do fechamento direto.");
@@ -586,17 +596,10 @@ async function startMalvin() {
         return;
       }
       try {
-        if (typeof Malvin.waitForSocketOpen === "function") {
-          await Promise.race([
-            Malvin.waitForSocketOpen(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("tempo limite de 10 segundos aguardando WebSocket aberto")), 10000))
-          ]);
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          console.log("🔗 Transporte WebSocket aberto; solicitando código após o handshake.");
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          console.warn("⚠️ waitForSocketOpen não está disponível; usando atraso de segurança.");
-        }
+        // Não esperar o WebSocket abrir: o código é necessário para concluir o pareamento.
+        // Um atraso curto deixa o transporte iniciar sem criar uma dependência circular.
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        console.log("🔗 Transporte iniciado; solicitando código sem bloquear em waitForSocketOpen.");
         const pairingCode = await Promise.race([
           Malvin.requestPairingCode(pairingNumber),
           new Promise((_, reject) => setTimeout(() => reject(new Error("tempo limite de 15 segundos aguardando resposta do WhatsApp")), 15000))
@@ -663,6 +666,10 @@ async function startMalvin() {
       onClose: async cleanVar0160 => {
         waConnectionState = "closed";
         if (cleanVar0160 === activeSocket) activeSocket = null;
+        if (pairingRequestTimer) {
+          clearTimeout(pairingRequestTimer);
+          pairingRequestTimer = null;
+        }
         try {
           await credsSaveChain;
           console.log("[WA-DIAG] Fila de creds concluída antes do fechamento do socket.");
@@ -676,6 +683,10 @@ async function startMalvin() {
         store?.destroy();
       },
       suppressReconnect: () => rawRestartInFlight,
+      onRestartRequired: async cleanVar0160 => {
+        if (cleanVar0160 !== activeSocket && cleanVar0160 !== Malvin) return;
+        await restartFromRaw515(true);
+      },
       onDeviceRemoved: async () => {
         if (authRecoveryStarted) return;
         authRecoveryStarted = true;
