@@ -23,6 +23,10 @@ const createSocketConfig = (version, state, logger) => {
         connectTimeoutMs: 15000,
         defaultQueryTimeoutMs: 20000,
         keepAliveIntervalMs: 20000,
+        // Mantém a validade dos QR subsequentes alinhada ao endpoint /qr.
+        // Sem esta opção, o Baileys reduz os QR seguintes para 20s enquanto a
+        // página ainda os apresenta como válidos por até 60s.
+        qrTimeout: 60000,
         // Consultas de inicializacao desativadas para reduzir o uso de memoria.
         fireInitQueries: false,
         markOnlineOnConnect: true,
