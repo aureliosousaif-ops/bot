@@ -987,6 +987,23 @@ function setupCommandHandler(cleanVar0141) {
       quotedKey: cleanVar0100,
       quotedUser: cleanVar0136
     } = cleanVar0222;
+    if (cleanVar0227 && !cleanVar0156 && typeof cleanVar0006 === "string" && cleanVar0006.trim() === cleanVar0222.prefix) {
+      const prefixLabel = cleanVar0222.prefix || cleanVar0087.PREFIX || "/";
+      const displayName = String(cleanVar0128 || "amigo").replace(/[\r\n]/g, " ").slice(0, 32);
+      const prefixHelp = [
+        "╭─❖ 🧊🔥 ❖─╮",
+        "│ 🤖 *SOUSINHA BOT PREMIUM*",
+        "│",
+        `│ 👋 Olá, ${displayName}!`,
+        "│",
+        `│ ✅ Meu prefixo atual é: *${prefixLabel}*`,
+        "│ 📚 Digite o prefixo + *menu* para ver os comandos.",
+        `│ ⚡ Exemplo: *${prefixLabel}ping*`,
+        "╰────────────╯",
+      ].join("\n");
+      await cleanVar0141.sendMessage(cleanVar0109, { text: prefixHelp }, { quoted: cleanVar0165 });
+      return;
+    }
     const cleanVar0059 = await getGroupInfo(cleanVar0141, cleanVar0109, cleanVar0103, cleanVar0241);
     const {
       groupInfo: cleanVar0121,
