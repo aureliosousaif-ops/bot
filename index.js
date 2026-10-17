@@ -1,5 +1,6 @@
 require("events").EventEmitter.defaultMaxListeners = 960;
 require("./king/mxdhelpers");
+const { Boom } = require("@hapi/boom");
 const { usePostgresAuthState } = require("./king/socket/postgresAuthState");
 const {
   default: malvinConnect,
@@ -433,6 +434,7 @@ async function startMalvin() {
     waConnectionState = "connecting";
     console.log("✅ Socket do WhatsApp criado; aguardando QR ou conexão...");
     let connectionState = "created";
+    let postPairingRestartTimer = null;
     const socketWatchdog = setTimeout(() => {
       if (connectionState !== "open") {
         console.error("[WA-DIAG] Sem avanço do socket após 20s: estado=" + connectionState + ". Possível falha de DNS, TLS, WebSocket ou versão incompatível.");
@@ -441,6 +443,19 @@ async function startMalvin() {
     Malvin.ev.on("connection.update", update => {
       if (update?.connection) connectionState = update.connection;
       if (update?.connection) waConnectionState = update.connection;
+      if (update?.isNewLogin) {
+        console.log("[WA-DIAG] Pareamento aceito; aguardando reinício controlado do socket.");
+        if (postPairingRestartTimer) clearTimeout(postPairingRestartTimer);
+        postPairingRestartTimer = setTimeout(() => {
+          if (connectionState === "open" || activeSocket !== Malvin) return;
+          console.warn("[WA-DIAG] Socket permaneceu em " + connectionState + " após pareamento; solicitando restartRequired controlado.");
+          try {
+            Malvin.end(new Boom("restartRequired após pareamento", { statusCode: 515 }));
+          } catch (error) {
+            console.error("[WA-DIAG] Falha ao solicitar reinício pós-pareamento: " + safeErrorText(error));
+          }
+        }, 15000);
+      }
       if (DEBUG_WHATSAPP) {
         const details = {
           connection: update?.connection || null,
@@ -453,7 +468,13 @@ async function startMalvin() {
         console.log("[WA-DIAG] connection.update=" + JSON.stringify(details));
         if (update?.lastDisconnect?.error) console.error("[WA-DIAG] desconexão=" + safeDisconnectDetails(update.lastDisconnect.error));
       }
-      if (update?.connection === "open") clearTimeout(socketWatchdog);
+      if (update?.connection === "open") {
+        clearTimeout(socketWatchdog);
+        if (postPairingRestartTimer) {
+          clearTimeout(postPairingRestartTimer);
+          postPairingRestartTimer = null;
+        }
+      }
       if (update?.qr) {
         const generatedAt = Date.now();
         qrState = { value: update.qr, generatedAt, expiresAt: generatedAt + 60000 };
