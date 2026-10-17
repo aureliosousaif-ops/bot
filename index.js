@@ -392,6 +392,12 @@ async function startMalvin() {
     const pairingMarkerIncomplete = cleanVar0042.creds?.me?.name === "~" && cleanVar0042.creds?.registered !== true;
     const pairingSessionIncomplete = !cleanVar0042.creds?.me?.id || pairingMarkerIncomplete || cleanVar0042.creds?.registered === false;
     console.log("[WA-DIAG] Estado da sessão: registered=" + String(cleanVar0042.creds?.registered === true) + ", hasMe=" + String(Boolean(cleanVar0042.creds?.me?.id)) + ", incomplete=" + String(pairingSessionIncomplete) + ", lógica=" + (activeAuthSessionId === recoveryAuthSessionId ? "recuperação" : "principal"));
+    if (usePostgresAuth && activeAuthSessionId === recoveryAuthSessionId && cleanVar0042.creds?.registered === false && cleanVar0042.creds?.me?.id) {
+      delete cleanVar0042.creds.me;
+      delete cleanVar0042.creds.pairingCode;
+      await cleanVar0053();
+      console.warn("[PAIRING] Sessão de recuperação inconsistente (registered=false com creds.me); metadados de pareamento limpos para permitir QR real. Chaves preservadas.");
+    }
     if (usePostgresAuth && activeAuthSessionId === recoveryAuthSessionId && cleanVar0042.creds?.registered === true && !cleanVar0042.creds?.me?.id) {
       cleanVar0042.creds.registered = false;
       await cleanVar0053();
